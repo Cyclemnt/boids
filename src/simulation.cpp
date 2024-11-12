@@ -1,4 +1,4 @@
-#include "simulation.hpp"
+#include "../include/simulation.hpp"
 
 Simulation::Simulation(double width_,double height_)
 {
@@ -33,6 +33,9 @@ void Simulation::sendInfoToBoids()
 {
 }
 
-Simulation::~Simulation()
-{
+Simulation::~Simulation() {
+    for (int i = boids.size(); i > 0 ; i--) {
+        delete boids[i];
+        boids.pop_back();
+    }
 }

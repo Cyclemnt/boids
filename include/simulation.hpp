@@ -8,6 +8,7 @@ class Simulation {
         std::vector<Boid*> boids;
     public :
         Simulation(double width_, double height_);
+
         void addBoid();
         void removeBoid();
         void reset();
@@ -15,7 +16,6 @@ class Simulation {
         void togglePause();
         bool isPaused() const ;
         void sendInfoToBoids();
-
-
-
+        
+        ~Simulation();
 };
