@@ -1,32 +1,11 @@
 #include "../include/boid.hpp"
-#include "boid.hpp"
 
-Boid::Boid(float x, float y, float angle)
-{
+Boid::Boid(vPose pose_, int fov_, double maxSpeed_, double maxAngVelocity_)
+    : pose(pose_), fov(fov_), maxSpeed(maxSpeed_), maxAngVelocity(maxAngVelocity_) {}
+
+// Setters
+void Boid::setTimeStep(int timeStep_) {
+    timeStep = timeStep_;
 }
 
-std::pair<float, float> Boid::getPosition() const
-{
-    return std::pair<float, float>();
-}
-
-float Boid::getDirection() const
-{
-    return 0.0f;
-}
-
-void Boid::move()
-{
-}
-
-void Boid::applyRules(const std::vector<Boid> &neighbors)
-{
-}
-
-void Boid::updateColor()
-{
-}
-
-void Boid::wrapPosition(float width, float height)
-{
-}
+Boid::~Boid() {}
