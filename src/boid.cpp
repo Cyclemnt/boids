@@ -9,15 +9,11 @@ void Boid::setTimeStep(int timeStep_) {
     timeStep = timeStep_;
 }
 
-void Boid::SeparationCorrection(std::vector<Boid*>)
-{
-    
+void Boid::SeparationCorrection(std::vector<Boid*>) {
 }
-void Boid::AlignmentCorrection(std::vector<Boid*>)
-{
+void Boid::AlignmentCorrection(std::vector<Boid*>) {
 }
-void Boid::CohesionCorrection(std::vector<Boid*>)
-{
+void Boid::CohesionCorrection(std::vector<Boid*>) {
 }
 
 vPose Boid::getPose() const {

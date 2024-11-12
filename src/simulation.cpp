@@ -66,10 +66,10 @@ void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
 }
 
 
-// Méthode pour gérer la pause de la simulation
+// Méthode pour changer l'état de la simulation
 void Simulation::togglePause() {
 }
-
+// Méthode pour obtenir l'état de la simulation
 bool Simulation::isPaused() const {
     return false;
 }
