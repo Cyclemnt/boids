@@ -1,11 +1,12 @@
+#ifndef BOID_HPP
+#define BOID_HPP
+
+#include "types.hpp"
 #include <utility>
 #include <vector>
 
-struct vPose {
-    double x, y, theta;
-};
-
-enum class Interaction { DISTANCING, ALIGNMENT, COHESION };
+using Types::vPose;
+using Types::Interaction;
 
 class Boid
 {
@@ -24,6 +25,10 @@ public:
     void SeparationCorrection(std::vector<Boid*> neighborsSeparation);
     void AlignmentCorrection(std::vector<Boid*> neighborsAlignment);
     void CohesionCorrection(std::vector<Boid*> neighborsCohesion);
+
+    vPose getPose() const;
     
     ~Boid();
 };
+
+#endif // BOID_HPP

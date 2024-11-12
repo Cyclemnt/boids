@@ -19,4 +19,9 @@ void Boid::AlignmentCorrection(std::vector<Boid*>)
 void Boid::CohesionCorrection(std::vector<Boid*>)
 {
 }
+
+vPose Boid::getPose() const {
+    return pose;
+}
+
 Boid::~Boid() {}
