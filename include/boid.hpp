@@ -5,6 +5,21 @@
 #include <utility> // for std::pair
 
 class Boid {
+private:
+    // Attributs principaux
+    float x, y;          // Position
+    float vx, vy;        // Vitesse
+    float direction;     // Angle de déplacement
+    float viewAngle;     // Angle de vue
+
+    // État d'interaction pour couleur
+    enum Interaction { DISTANCING, ALIGNMENT, COHESION };
+    Interaction currentInteraction;
+    
+    // Paramètres de mouvement
+    float maxSpeed;
+    float maxTurnRate;
+    
 public:
     // Constructeur
     Boid(float x, float y, float angle);
@@ -20,21 +35,6 @@ public:
 
     // Gestion des bords
     void wrapPosition(float width, float height);
-
-private:
-    // Attributs principaux
-    float x, y;          // Position
-    float vx, vy;        // Vitesse
-    float direction;     // Angle de déplacement
-    float viewAngle;     // Angle de vue
-
-    // État d'interaction pour couleur
-    enum Interaction { DISTANCING, ALIGNMENT, COHESION };
-    Interaction currentInteraction;
-    
-    // Paramètres de mouvement
-    float maxSpeed;
-    float maxTurnRate;
 };
 
 #endif // BOID_HPP

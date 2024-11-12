@@ -2,6 +2,12 @@
 #define ZONE_HPP
 
 class Zone {
+private:
+    // Attributs de zones
+    float distancingRadius;
+    float alignmentRadius;
+    float cohesionRadius;
+    
 public:
     // Constructeur
     Zone(float distancingRadius, float alignmentRadius, float cohesionRadius);
@@ -20,12 +26,6 @@ public:
     bool isInDistancingZone(float distance) const;
     bool isInAlignmentZone(float distance) const;
     bool isInCohesionZone(float distance) const;
-
-private:
-    // Attributs de zones
-    float distancingRadius;
-    float alignmentRadius;
-    float cohesionRadius;
 };
 
 #endif // ZONE_HPP
