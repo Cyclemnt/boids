@@ -1,0 +1,13 @@
+# Ignorer les dossiers de build
+build/
+cmake-build-debug/
+out/
+
+# Ignorer les binaires et objets
+*.o
+*.out
+*.exe
+
+# Ignorer les fichiers temporaires
+*.tmp
+*.log
