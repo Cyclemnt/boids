@@ -1,4 +1,5 @@
 #include <utility>
+#include<vector>
 
 struct vPose {
     double x, y, theta;
@@ -20,5 +21,11 @@ public:
 
     void setTimeStep(int timeStep_);
 
+    void SeparationCorrection(std::vector<Boid*> neighborsSeparation);
+
+    void AlignmentCorrection(std::vector<Boid*> neighborsAlignment); 
+    
+    void CohesionCorrection(std::vector<Boid*> neighborsCohesion); 
+    
     ~Boid();
 };
