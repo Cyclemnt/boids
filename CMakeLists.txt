@@ -14,9 +14,16 @@ include_directories(
 
 set(SOURCES
     src/main.cpp
+    src/boid.cpp
+    src/simulation.cpp
+    src/zone.cpp
 )
 
 set(HEADERS
+    include/types.hpp
+    include/boid.hpp
+    include/simulation.hpp
+    include/zone.hpp
 )
 
 set(CMAKE_BUILD_TYPE Debug) 

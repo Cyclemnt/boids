@@ -1,10 +1,10 @@
-#include "simulation.hpp"
+#include "../include/simulation.hpp"
 
 Simulation::Simulation(double width_, double height_)
     : width(width_), height(height_) 
 {
     // Création d'une image de la taille de la simulation
-    displayImage = cv::Mat::zeros(height, width, CV_8UC3);
+    cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 }
 
 // Méthode pour ajouter un boid à la simulation
@@ -32,27 +32,20 @@ void Simulation::reset() {
 // Met à jour tous les boids et affiche la simulation
 void Simulation::update() {
     // Effacer l'image précédente
-    displayImage = cv::Mat::zeros(height, width, CV_8UC3);
+    cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
     
     // Mettre à jour chaque boid
     for (Boid* boid : boids) {
-        updateBoidPosition(boid);
-        displayBoid(boid); // Afficher le boid dans l'image
+        displayBoid(&image, boid); // Afficher le boid dans l'image
     }
     
     // Afficher l'image dans une fenêtre OpenCV
-    cv::imshow("Simulation de Boids", displayImage);
+    cv::imshow("Simulation de Boids", image);
     cv::waitKey(10); // Pause pour rafraîchir l'affichage
 }
 
-// Méthode pour mettre à jour la position d'un boid avec torus
-void Simulation::updateBoidPosition(Boid* boid) {
-    boid->pose.x = fmod(boid->pose.x + width, width);
-    boid->pose.y = fmod(boid->pose.y + height, height);
-}
-
 // Affiche chaque boid avec une couleur selon son interaction
-void Simulation::displayBoid(const Boid* boid) {
+void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
     // Déterminer la couleur en fonction de l'interaction
     cv::Scalar color;
     switch (boid->getCurrentInteraction()) {
@@ -68,24 +61,21 @@ void Simulation::displayBoid(const Boid* boid) {
     }
 
     // Dessiner le boid sous forme de point
-    cv::Point2i position(static_cast<int>(boid->pose.x), static_cast<int>(boid->pose.y));
-    cv::circle(displayImage, position, 3, color, -1); // Rayon de 3 pixels
+    cv::Point2i position(static_cast<int>(boid->getPose().x), static_cast<int>(boid->getPose().y));
+    cv::circle(*image, position, 3, color, -1); // Rayon de 3 pixels
 }
 
 
 // Méthode pour gérer la pause de la simulation
-void Simulation::togglePause()
-{
+void Simulation::togglePause() {
 }
 
-bool Simulation::isPaused() const
-{
+bool Simulation::isPaused() const {
     return false;
 }
 
 // Méthode pour envoyer des informations aux boids
-void Simulation::sendInfoToBoids()
-{
+void Simulation::sendInfoToBoids() {
 }
 
 Simulation::~Simulation() {

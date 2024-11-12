@@ -23,5 +23,8 @@ void Boid::CohesionCorrection(std::vector<Boid*>)
 vPose Boid::getPose() const {
     return pose;
 }
+Interaction Boid::getCurrentInteraction() const {
+    return currentInteraction;
+}
 
 Boid::~Boid() {}

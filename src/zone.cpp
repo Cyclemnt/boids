@@ -1,9 +1,8 @@
 #include "../include/zone.hpp"
 #include <cmath>
 
-Zone::Zone(double rDistancing, double rAlignment, double rCohesion)
-{
-}
+Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_)
+    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_) {}
 
 std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids) {
     std::vector<Boid*> neighbors;
@@ -31,6 +30,5 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
     return neighbors;
 }
 
-Zone::~Zone()
-{
+Zone::~Zone() {
 }

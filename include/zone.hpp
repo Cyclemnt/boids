@@ -14,12 +14,11 @@ private :
     double rDistancing, rAlignment, rCohesion;
 
 public : 
-    Zone(double rDistancing, double rAlignment, double rCohesion);
+    Zone(double rDistancing_, double rAlignment_, double rCohesion_);
 
     std::vector<Boid*> getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids);
 
     ~Zone();
-
 };
 
 #endif // ZONE_HPP

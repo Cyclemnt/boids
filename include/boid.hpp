@@ -27,6 +27,7 @@ public:
     void CohesionCorrection(std::vector<Boid*> neighborsCohesion);
 
     vPose getPose() const;
+    Interaction getCurrentInteraction() const;
     
     ~Boid();
 };
