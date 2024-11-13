@@ -14,17 +14,16 @@ private:
     int timeStep; 
     vPose pose;
     int fov;
-    double maxSpeed, maxAngVelocity;
+    double speed, angVelocity;
     Interaction currentInteraction;
 
 public:
-    Boid(vPose pose_, int fov_, double maxSpeed_, double maxAngVelocity_);
+    Boid(vPose pose_, int fov_, double speed_, double angVelocity_);
 
     void setTimeStep(int timeStep_);
 
-    void SeparationCorrection(std::vector<Boid*> neighborsSeparation);
-    void AlignmentCorrection(std::vector<Boid*> neighborsAlignment);
-    void CohesionCorrection(std::vector<Boid*> neighborsCohesion);
+    void move(int envWidth, int envHeight);
+    void applyRules(Interaction interaction, std::vector<Boid*> boids);
 
     vPose getPose() const;
     Interaction getCurrentInteraction() const;

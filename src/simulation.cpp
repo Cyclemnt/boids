@@ -1,10 +1,30 @@
 #include "../include/simulation.hpp"
 
-Simulation::Simulation(double width_, double height_)
-    : width(width_), height(height_) 
-{
+Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
+    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr) {
     // Création d'une image de la taille de la simulation
-    cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+    cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
+    zoneptr = new Zone(1, 2, 3);
+}
+
+// Lance la Simulation
+void Simulation::run() {
+    addBoid({2, 2, 0}, M_PI, 0.5, 0.5);
+    for (size_t i = 0; i < 1000; i++)
+    {
+        update();
+        boids[0]->move(envWidth, envHeight);
+    }
+    
+    /*
+    for (int i = 0; i < boids.size(); i++) {
+        for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
+            boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids));
+        }
+        boids[i]->move(envWidth, envHeight);
+    }
+    update();
+    */
 }
 
 // Méthode pour ajouter un boid à la simulation
@@ -32,7 +52,7 @@ void Simulation::reset() {
 // Met à jour tous les boids et affiche la simulation
 void Simulation::update() {
     // Effacer l'image précédente
-    cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+    cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
     
     // Mettre à jour chaque boid
     for (Boid* boid : boids) {
@@ -41,7 +61,7 @@ void Simulation::update() {
     
     // Afficher l'image dans une fenêtre OpenCV
     cv::imshow("Simulation de Boids", image);
-    cv::waitKey(10); // Pause pour rafraîchir l'affichage
+    cv::waitKey(timeStep); // Pause pour rafraîchir l'affichage
 }
 
 // Affiche chaque boid avec une couleur selon son interaction
@@ -61,7 +81,7 @@ void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
     }
 
     // Dessiner le boid sous forme de point
-    cv::Point2i position(static_cast<int>(boid->getPose().x), static_cast<int>(boid->getPose().y));
+    cv::Point2i position(static_cast<int>(boid->getPose().x), envHeight - static_cast<int>(boid->getPose().y));
     cv::circle(*image, position, 3, color, -1); // Rayon de 3 pixels
 }
 
@@ -72,10 +92,6 @@ void Simulation::togglePause() {
 // Méthode pour obtenir l'état de la simulation
 bool Simulation::isPaused() const {
     return false;
-}
-
-// Méthode pour envoyer des informations aux boids
-void Simulation::sendInfoToBoids() {
 }
 
 Simulation::~Simulation() {

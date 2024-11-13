@@ -1,9 +1,12 @@
+#include "../include/simulation.hpp"
 #include <iostream>
 
 #define TIMESTEP 32
 
 int main() {
-    std::cout << "hello" << std::endl;
+    Simulation sim(100, 100, TIMESTEP);
+
+    sim.run();
     
     return 0;
 }

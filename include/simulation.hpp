@@ -2,17 +2,18 @@
 #define SIMULATION_HPP
 
 #include "boid.hpp"
+#include "zone.hpp"
 #include <vector>
 #include <opencv2/opencv.hpp>
 
 class Simulation {
     private : 
-        double width;
-        double height;
+        int envWidth, envHeight, timeStep;
         std::vector<Boid*> boids;
+        Zone* zoneptr;
     public :
         // Constructeur
-        Simulation(double width_, double height_);
+        Simulation(int envWidth_, int envHeight_, int timeStep_);
 
         // Méthode pour ajouter un boid à la simulation
         void addBoid(vPose pose, int fov, double maxSpeed, double maxAngVelocity);
@@ -20,6 +21,8 @@ class Simulation {
         void removeBoid();
         // Réinitialiser la simulation
         void reset();
+        // Lance la simulation
+        void run();
         // Met à jour tous les boids et affiche la simulation
         void update();
         // Affiche chaque boid avec une couleur selon son interaction
@@ -28,8 +31,6 @@ class Simulation {
         void togglePause();
         // Méthode pour obtenir l'état de la simulation
         bool isPaused() const ;
-        // Méthode pour envoyer des informations aux boids
-        void sendInfoToBoids();
 
         ~Simulation();
 };
