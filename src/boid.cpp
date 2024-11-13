@@ -12,10 +12,9 @@ void Boid::setTimeStep(int timeStep_) {
 }
 
 void Boid::move(int envWidth, int envHeight) {
-    
-    std::cout << speed << " " << timeStep << " " << pose.theta << " " << pose.x << speed * (timeStep / 1000) * cos(pose.theta) << std::endl;
-    pose.x += (speed * (timeStep / 1000) * cos(pose.theta));
-    pose.y += (speed * (timeStep / 1000) * sin(pose.theta));
+    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
+    pose.x += (speed * timeStepInSeconds * cos(pose.theta));
+    pose.y += (speed *  timeStepInSeconds* sin(pose.theta));
     // += ne fonctionne pas
     pose.x = fmod(pose.x, envWidth);
     pose.y = fmod(pose.y, envHeight);

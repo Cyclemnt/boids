@@ -9,7 +9,7 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 
 // Lance la Simulation
 void Simulation::run() {
-    addBoid({2, 2, 0}, M_PI, 0.5, 0.5);
+    addBoid({2, 2, 0}, M_PI, 100, 0.5);
     for (size_t i = 0; i < 1000; i++)
     {
         update();
