@@ -4,27 +4,23 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(1, 2, 3);
+    zoneptr = new Zone(10, 20, 30);
 }
 
 // Lance la Simulation
 void Simulation::run() {
-    addBoid({2, 2, 0}, M_PI, 100, 0.5);
+    addBoid({2, 2, 0}, M_PI, 10, 0.5);
+    addBoid({10, 10, M_PI/4}, M_PI, 10, 0.5);
     for (size_t i = 0; i < 1000; i++)
     {
-        update();
-        boids[0]->move(envWidth, envHeight);
-    }
-    
-    /*
-    for (int i = 0; i < boids.size(); i++) {
-        for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-            boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids));
+        for (int i = 0; i < boids.size(); i++) {
+            for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
+                boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids));
+            }
+            boids[i]->move(envWidth, envHeight);
         }
-        boids[i]->move(envWidth, envHeight);
+        update();
     }
-    update();
-    */
 }
 
 // Méthode pour ajouter un boid à la simulation

@@ -14,8 +14,8 @@ void Boid::setTimeStep(int timeStep_) {
 void Boid::move(int envWidth, int envHeight) {
     double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
     pose.x += (speed * timeStepInSeconds * cos(pose.theta));
-    pose.y += (speed *  timeStepInSeconds* sin(pose.theta));
-    // += ne fonctionne pas
+    pose.y += (speed * timeStepInSeconds * sin(pose.theta));
+
     pose.x = fmod(pose.x, envWidth);
     pose.y = fmod(pose.y, envHeight);
 }
@@ -39,7 +39,8 @@ void Boid::applyRules(Interaction interaction, std::vector<Boid*> boids) {
     else if (interaction == Interaction::COHESION) {
         dir += (fmod(atan2(relPose.y, relPose.x), 2*M_PI) < fmod(pose.theta, 2*M_PI)) * -2;
     }
-    pose.theta += dir * (angVelocity * (timeStep / 1000));
+    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
+    pose.theta += dir * (angVelocity * timeStepInSeconds);
     pose.theta = fmod(pose.theta, 2*M_PI);
 }
 

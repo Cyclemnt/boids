@@ -1,5 +1,6 @@
 #include "../include/zone.hpp"
 #include <cmath>
+#include <iostream>
 
 Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_)
     : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_) {}
@@ -19,7 +20,7 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
         break;
     }
 
-    for (int i = boids.size(); i > 0; i--) {
+    for (int i = boids.size() - 1; i > 0; i--) {
         double dx = std::fabs(boid->getPose().x - boids[i]->getPose().x);
         double dy = std::fabs(boid->getPose().y - boids[i]->getPose().y);
         double distance = sqrt((dx * dx) + (dy * dy));
