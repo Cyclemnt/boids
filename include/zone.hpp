@@ -16,7 +16,7 @@ private :
 public : 
     Zone(double rDistancing_, double rAlignment_, double rCohesion_);
 
-    std::vector<Boid*> getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids);
+    std::vector<Boid*> getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, int envWidth, int envHeight);
 
     ~Zone();
 };

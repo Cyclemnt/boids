@@ -16,6 +16,7 @@ void Boid::move(int envWidth, int envHeight) {
     pose.x += (speed * timeStepInSeconds * cos(pose.theta));
     pose.y += (speed * timeStepInSeconds * sin(pose.theta));
 
+    // Assurer le comportement torique de l'environnement
     if (pose.x < 0) {
         pose.x += envWidth;
     } else if (pose.x >= envWidth) {
@@ -30,6 +31,10 @@ void Boid::move(int envWidth, int envHeight) {
 }
 
 void Boid::applyRules(Interaction interaction, std::vector<Boid*> boids) {
+    if (!boids.empty()) {
+        currentInteraction = interaction;
+    }
+    
     vPose avgPose = {0, 0, 0};
 
     for (int i = 0; i < boids.size(); i++) {
@@ -58,6 +63,26 @@ vPose Boid::getPose() const {
 }
 Interaction Boid::getCurrentInteraction() const {
     return currentInteraction;
+
+    switch (currentInteraction)
+        {
+        case Interaction::COHESION:
+            std::cout << "bob" << std::endl;
+            break;
+        
+        case Interaction::ALIGNMENT:
+            std::cout << "aab" << std::endl;
+            break;
+
+        case Interaction::DISTANCING:
+            std::cout << "ddd" << std::endl;
+            break;
+
+        default:
+            break;
+        }
+
+
 }
 
 Boid::~Boid() {}

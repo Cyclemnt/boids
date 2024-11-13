@@ -15,7 +15,7 @@ void Simulation::run() {
     {
         for (int i = 0; i < boids.size(); i++) {
             for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids));
+                boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight));
             }
             boids[i]->move(envWidth, envHeight);
         }
@@ -64,7 +64,8 @@ void Simulation::update() {
 void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
     // Déterminer la couleur en fonction de l'interaction
     cv::Scalar color;
-    switch (boid->getCurrentInteraction()) {
+    Interaction currentInteraction = boid->getCurrentInteraction();
+    switch (currentInteraction) {
         case Interaction::DISTANCING:
             color = cv::Scalar(0, 0, 255); // Rouge
             break;
