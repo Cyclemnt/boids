@@ -16,8 +16,17 @@ void Boid::move(int envWidth, int envHeight) {
     pose.x += (speed * timeStepInSeconds * cos(pose.theta));
     pose.y += (speed * timeStepInSeconds * sin(pose.theta));
 
-    pose.x = fmod(pose.x, envWidth);
-    pose.y = fmod(pose.y, envHeight);
+    if (pose.x < 0) {
+        pose.x += envWidth;
+    } else if (pose.x >= envWidth) {
+        pose.x -= envWidth;
+    }
+
+    if (pose.y < 0) {
+        pose.y += envHeight;
+    } else if (pose.y >= envHeight) {
+        pose.y -= envHeight;
+    }
 }
 
 void Boid::applyRules(Interaction interaction, std::vector<Boid*> boids) {
