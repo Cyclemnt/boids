@@ -1,9 +1,10 @@
 #include "../include/boid.hpp"
 #include "boid.hpp"
 #include <cmath>
+#include <iostream>
 
 Boid::Boid(vPose pose_, int fov_, double speed_, double angVelocity_)
-    : pose(pose_), fov(fov_), speed(speed_), angVelocity(angVelocity_) {}
+    : timeStep(64), pose(pose_), fov(fov_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::COHESION) {}
 
 // Setters
 void Boid::setTimeStep(int timeStep_) {
@@ -11,9 +12,11 @@ void Boid::setTimeStep(int timeStep_) {
 }
 
 void Boid::move(int envWidth, int envHeight) {
-    pose.x += speed * (timeStep / 1000) * cos(pose.theta);
-    pose.y += speed * (timeStep / 1000) * sin(pose.theta);
-
+    
+    std::cout << speed << " " << timeStep << " " << pose.theta << " " << pose.x << speed * (timeStep / 1000) * cos(pose.theta) << std::endl;
+    pose.x += (speed * (timeStep / 1000) * cos(pose.theta));
+    pose.y += (speed * (timeStep / 1000) * sin(pose.theta));
+    // += ne fonctionne pas
     pose.x = fmod(pose.x, envWidth);
     pose.y = fmod(pose.y, envHeight);
 }

@@ -81,8 +81,7 @@ void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
     }
 
     // Dessiner le boid sous forme de point
-    cv::Point2i position(static_cast<int>(boid->getPose().x), envHeight - static_cast<int>(boid->getPose().y));
-    cv::circle(*image, position, 3, color, -1); // Rayon de 3 pixels
+    cv::circle(*image, cv::Point(boid->getPose().x, envHeight - boid->getPose().y), 3, color, -1); // Rayon de 3 pixels
 }
 
 
