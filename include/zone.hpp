@@ -11,12 +11,12 @@ using Types::Interaction;
 class Zone
 {
 private : 
-    double rDistancing, rAlignment, rCohesion;
+    double rDistancing, rAlignment, rCohesion,rNothing;
 
 public : 
     Zone(double rDistancing_, double rAlignment_, double rCohesion_);
 
-    std::vector<Boid*> getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, int envWidth, int envHeight);
+    std::vector<Boid*> getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, int envWidth, int envHeight, int BoidVposition);
 
     ~Zone();
 };

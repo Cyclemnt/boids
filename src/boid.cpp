@@ -30,32 +30,50 @@ void Boid::move(int envWidth, int envHeight) {
     }
 }
 
-void Boid::applyRules(Interaction interaction, std::vector<Boid*> boids) {
-    if (!boids.empty()) {
-        currentInteraction = interaction;
-    }
-    
-    vPose avgPose = {0, 0, 0};
+void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighborboids) {
+        
+        if (!neighborboids.empty()) {
+            currentInteraction = interaction;
 
-    for (int i = 0; i < boids.size(); i++) {
-        avgPose = avgPose + boids[i]->getPose();
-    }
-    avgPose = avgPose / boids.size();
-    vPose relPose = pose - avgPose;
-    
-    int dir = 1;
-    if (interaction == Interaction::DISTANCING) {
-        dir += (fmod(atan2(-relPose.y, -relPose.x), 2*M_PI) < fmod(pose.theta, 2*M_PI)) * -2;
-    }
-    else if (interaction == Interaction::ALIGNMENT) {
-        dir += (fmod(avgPose.theta, 2*M_PI) < fmod(pose.theta, 2*M_PI)) * -2;
-    }
-    else if (interaction == Interaction::COHESION) {
-        dir += (fmod(atan2(relPose.y, relPose.x), 2*M_PI) < fmod(pose.theta, 2*M_PI)) * -2;
-    }
-    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
-    pose.theta += dir * (angVelocity * timeStepInSeconds);
-    pose.theta = fmod(pose.theta, 2*M_PI);
+
+        vPose avgPose = {0, 0, 0};
+
+        for (int i = 0; i < neighborboids.size(); i++) {
+            avgPose = avgPose + neighborboids[i]->getPose();
+            
+        }
+        avgPose = avgPose / neighborboids.size();
+        vPose relPose = avgPose-pose;
+        int dir=0;
+        std::cout << relPose.x << std::endl;
+        if (interaction == Interaction::DISTANCING) {
+            if (fmod(atan2(relPose.y, relPose.x) + M_PI,2*M_PI) < fmod(pose.theta, 2*M_PI)){
+                dir = -1;
+            }
+            else {
+                dir = 1;
+            }
+        }
+        else if (interaction == Interaction::ALIGNMENT) {
+            if (fmod(pose.theta-avgPose.theta, M_PI) > 1e-6) {
+                dir = -1;
+            }
+            else if (fmod(pose.theta-avgPose.theta, M_PI) < 1e-6){
+                dir = 1;
+            }
+        }
+        else if (interaction == Interaction::COHESION) {
+            if (fmod(atan2(relPose.y, relPose.x),2*M_PI) < fmod(pose.theta, 2*M_PI))
+            dir = 1;
+
+            else {
+                dir = -1;
+            }
+        }
+        double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
+        pose.theta += dir * (angVelocity * timeStepInSeconds);
+        pose.theta = fmod(pose.theta, 2*M_PI);
+        }
 }
 
 vPose Boid::getPose() const {
@@ -63,26 +81,6 @@ vPose Boid::getPose() const {
 }
 Interaction Boid::getCurrentInteraction() const {
     return currentInteraction;
-
-    switch (currentInteraction)
-        {
-        case Interaction::COHESION:
-            std::cout << "bob" << std::endl;
-            break;
-        
-        case Interaction::ALIGNMENT:
-            std::cout << "aab" << std::endl;
-            break;
-
-        case Interaction::DISTANCING:
-            std::cout << "ddd" << std::endl;
-            break;
-
-        default:
-            break;
-        }
-
-
 }
 
 Boid::~Boid() {}

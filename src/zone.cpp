@@ -4,12 +4,12 @@
 #include <cmath>
 
 Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_)
-    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_) {}
+    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_),rNothing(1e16) {}
 
-std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, int envWidth, int envHeight) {
+std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, int envWidth, int envHeight,int boidVPosition) {
     std::vector<Boid*> neighbors;
     double radius = 0;
-
+    
     // Définir le rayon en fonction de l'interaction
     switch (interaction) {
         case Interaction::DISTANCING:
@@ -21,14 +21,17 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
         case Interaction::COHESION:
             radius = rCohesion;
             break;
+        case Interaction::NOTHING:
+            radius = rNothing;
     }
 
     // Parcourir chaque boid pour calculer la distance torique
-    for (int i = boids.size() - 1; i >= 0; i--) {
+    for (int i = 0; i <boids.size(); i++) {
+        if (i !=boidVPosition){
         // Calculer la distance en x en tenant compte de l'environnement torique
-        double dx = std::fabs(boid->getPose().x - std::min(boids[i]->getPose().x, envWidth - boids[i]->getPose().x));
+        double dx = std::min(std::fabs(boid->getPose().x - boids[i]->getPose().x),envWidth - std::fabs(boid->getPose().x - boids[i]->getPose().x));
         // Calculer la distance en y en tenant compte de l'environnement torique
-        double dy = std::fabs(boid->getPose().y - std::min(boids[i]->getPose().y, envHeight - boids[i]->getPose().y));
+        double dy = std::min(std::fabs(boid->getPose().y - boids[i]->getPose().y),envHeight - std::fabs(boid->getPose().y - boids[i]->getPose().y));
 
         // Calculer la distance euclidienne avec les distances minimales en x et y
         double distance = sqrt((dx * dx) + (dy * dy));
@@ -37,8 +40,8 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
         if (distance < radius) {
             neighbors.push_back(boids[i]);
         }
+        }
     }
-
     return neighbors;
 }
 

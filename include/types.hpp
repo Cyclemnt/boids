@@ -21,7 +21,7 @@ namespace Types
         }
     };
 
-    enum class Interaction { DISTANCING, ALIGNMENT, COHESION };
+    enum class Interaction { DISTANCING, ALIGNMENT, COHESION,NOTHING };
 } // namespace Types
 
 #endif // TYPES_HPP
