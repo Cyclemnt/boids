@@ -2,7 +2,6 @@
 #define BOID_HPP
 
 #include "types.hpp"
-#include <utility>
 #include <vector>
 
 using Types::vPose;
@@ -23,7 +22,7 @@ public:
     void setTimeStep(int timeStep_);
 
     void move(int envWidth, int envHeight);
-    void applyRules(Interaction interaction, std::vector<Boid*> boids);
+    void applyRules(Interaction interaction, std::vector<Boid*> neighbors);
 
     vPose getPose() const;
     Interaction getCurrentInteraction() const;
