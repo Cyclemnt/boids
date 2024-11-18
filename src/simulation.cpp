@@ -1,39 +1,31 @@
 #include "../include/simulation.hpp"
+#include <random>
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(20, 25, 30);
+    zoneptr = new Zone(10, 20, 40);
 }
 
 // Lance la Simulation
 void Simulation::run() {
-    addBoid({2, 2, 0}, M_PI, 10, 1);
-    addBoid({30, 30, -M_PI/4}, M_PI, 10, 1);
-    addBoid({30, 50, M_PI/2}, M_PI, 10, 1);
-    addBoid({20, 10, -M_PI/2}, M_PI, 10, 1);
-    addBoid({10, 100, M_PI}, M_PI, 10, 1);
-    addBoid({60, 80, M_PI/3}, M_PI, 10, 1);
-    addBoid({50, 10, M_PI/6}, M_PI, 10, 1);
-    addBoid({30, 80, M_PI/8}, M_PI, 10, 1);
-    addBoid({100, 40, M_PI/2}, M_PI, 10, 1);
-    addBoid({50, 20, M_PI/4}, M_PI, 10, 1);
-    addBoid({70, 20, M_PI/21}, M_PI, 10, 1);
-    for (size_t i = 0; i < 1000; i++)
-    {
+    // Initialiser 50 boids avec des positions et paramètres aléatoires
+    initializeBoidsRandomly(1000, M_PI, 10, 1);
+
+    // Lancer la simulation
+    for (size_t i = 0; i < 1000; i++) {
         for (int i = 0; i < boids.size(); i++) {
             for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION, Interaction::NOTHING}) {
-                boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight,i));
-                if ( zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight,i).size() != 0 )
-                {
+                boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight, i));
+                if (zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight, i).size() != 0) {
                     break;
                 }
             }
             boids[i]->move(envWidth, envHeight);
-            update();
-        }
-    }
+        }update();
+    }            
+
 }
 
 // Méthode pour ajouter un boid à la simulation
@@ -47,6 +39,46 @@ void Simulation::removeBoid() {
     if (!boids.empty()) {
         delete boids.back();
         boids.pop_back();
+    }
+}
+
+// Méthode pour initialiser les boids de manière aléatoire
+void Simulation::initializeBoidsRandomly(int numBoids, int fov, double maxSpeed, double maxAngVelocity) {
+    // Initialise un générateur de nombres aléatoires
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> disX(0, envWidth);  // Pour la position en X
+    std::uniform_real_distribution<> disY(0, envHeight); // Pour la position en Y
+    std::uniform_real_distribution<> disTheta(-M_PI, M_PI); // Pour l'angle de direction
+
+    // Crée les boids
+    for (int i = 0; i < numBoids; ++i) {
+        vPose newPose;
+        bool isPositionValid = false;
+
+        while (!isPositionValid) {
+            // Génère une nouvelle position aléatoire
+            newPose.x = disX(gen);
+            newPose.y = disY(gen);
+            newPose.theta = disTheta(gen);
+
+            // Vérifie que la position ne chevauche pas un boid existant
+            isPositionValid = true;
+            for (Boid* boid : boids) {
+                double dx = newPose.x - boid->getPose().x;
+                double dy = newPose.y - boid->getPose().y;
+                double distance = sqrt(dx * dx + dy * dy);
+
+                // Si la distance est trop petite, la position est invalide
+                if (distance < 10) {  // 10 est la distance minimale entre deux boids
+                    isPositionValid = false;
+                    break;
+                }
+            }
+        }
+
+        // Ajoute le boid avec la position valide
+        addBoid(newPose, fov, maxSpeed, maxAngVelocity);
     }
 }
 

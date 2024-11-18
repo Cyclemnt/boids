@@ -19,6 +19,8 @@ class Simulation {
         void addBoid(vPose pose, int fov, double maxSpeed, double maxAngVelocity);
         // Méthode pour supprimer un boid de la simulation
         void removeBoid();
+        // Méthode pour initialiser les boids de manière aléatoire
+        void initializeBoidsRandomly(int numBoids, int fov, double maxSpeed, double maxAngVelocity);
         // Réinitialiser la simulation
         void reset();
         // Lance la simulation

@@ -1,10 +1,10 @@
 
-#define TIMESTEP 5
+#define TIMESTEP 128
 #include "../include/simulation.hpp"
 #include <iostream>
 
 int main() {
-    Simulation sim(150,150, TIMESTEP);
+    Simulation sim(1920,1800, TIMESTEP);
 
     sim.run();
     
