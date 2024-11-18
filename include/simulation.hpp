@@ -11,18 +11,21 @@ class Simulation {
         int envWidth, envHeight, timeStep;
         std::vector<Boid*> boids;
         Zone* zoneptr;
+        bool paused;
     public :
         // Constructeur
         Simulation(int envWidth_, int envHeight_, int timeStep_);
 
         // Méthode pour ajouter un boid à la simulation
         void addBoid(vPose pose, int fov, double maxSpeed, double maxAngVelocity);
-        // Méthode pour supprimer un boid de la simulation
+       // Méthode pour supprimer un boid de la simulation
         void removeBoid();
         // Méthode pour initialiser les boids de manière aléatoire
         void initializeBoidsRandomly(int numBoids, int fov, double maxSpeed, double maxAngVelocity);
         // Réinitialiser la simulation
         void reset();
+        // Méthode pour gérer les touches
+        void handleKeyPress(int key);
         // Lance la simulation
         void run();
         // Met à jour tous les boids et affiche la simulation

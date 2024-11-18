@@ -2,7 +2,7 @@
 #include <random>
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
-    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr) {
+    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr),paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
     zoneptr = new Zone(10, 20, 40);
@@ -14,12 +14,17 @@ void Simulation::run() {
     initializeBoidsRandomly(10, M_PI, 10, 1);
 
     // Lancer la simulation
-    for (size_t i = 0; i < 1000; i++) {
-        for (int i = 0; i < boids.size(); i++) {
+    while (true) {
+        // Gestion des entrées clavier
+        int key = cv::waitKey(timeStep);
+        if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
+        // Si en pause, ne pas mettre à jour la simulation
+        if (paused) continue;
+    for (int i = 0; i < boids.size(); i++) {
             for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION, Interaction::NOTHING}) {
                 auto neighbors =zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight, i); 
-                boids[i]->applyRules(interaction, neighbors);
                 if (neighbors.size() != 0) {
+                    boids[i]->applyRules(interaction, neighbors);
                     break;
                 }
             }
@@ -34,7 +39,6 @@ void Simulation::addBoid(vPose pose, int fov, double maxSpeed, double maxAngVelo
     Boid* newBoid = new Boid(pose, fov, maxSpeed, maxAngVelocity);
     boids.push_back(newBoid);
 }
-
 // Méthode pour supprimer un boid de la simulation
 void Simulation::removeBoid() {
     if (!boids.empty()) {
@@ -45,13 +49,6 @@ void Simulation::removeBoid() {
 
 // Méthode pour initialiser les boids de manière aléatoire
 void Simulation::initializeBoidsRandomly(int numBoids, int fov, double maxSpeed, double maxAngVelocity) {
-    // Initialise un générateur de nombres aléatoires
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> disX(0, envWidth);  // Pour la position en X
-    std::uniform_real_distribution<> disY(0, envHeight); // Pour la position en Y
-    std::uniform_real_distribution<> disTheta(-M_PI, M_PI); // Pour l'angle de direction
-
     // Crée les boids
     for (int i = 0; i < numBoids; ++i) {
         vPose newPose;
@@ -59,9 +56,9 @@ void Simulation::initializeBoidsRandomly(int numBoids, int fov, double maxSpeed,
 
         while (!isPositionValid) {
             // Génère une nouvelle position aléatoire
-            newPose.x = disX(gen);
-            newPose.y = disY(gen);
-            newPose.theta = disTheta(gen);
+            newPose.x = rand()%envWidth;
+            newPose.y = rand()%envHeight;
+            newPose.theta = rand()%2*M_PI;
 
             // Vérifie que la position ne chevauche pas un boid existant
             isPositionValid = true;
@@ -89,6 +86,42 @@ void Simulation::reset() {
         delete boid;
     }
     boids.clear();
+}
+
+
+// Méthode pour gérer les touches
+void Simulation::handleKeyPress(int key) {
+    switch (key) {
+        case 'p': // Pause ou reprise
+            togglePause();
+            std::cout << (paused ? "Simulation en pause." : "Simulation reprise.") << std::endl;
+            break;
+        case 'r': // Réinitialiser
+            reset();
+            std::cout << "Simulation réinitialisée." << std::endl;
+            break;
+        case '+': // Ajouter un boid
+            initializeBoidsRandomly(1,M_PI,10,1);
+            std::cout << "Boid ajouté." << std::endl;
+            break;
+        case '-': // Supprimer un boid
+            removeBoid();
+            std::cout << "Boid supprimé." << std::endl;
+            break;
+        case 27: // Échapper (ESC) pour quitter
+            std::cout << "Simulation terminée." << std::endl;
+            exit(0);
+    }
+}
+
+// Méthode pour basculer l'état de pause
+void Simulation::togglePause() {
+    paused = !paused;
+}
+
+// Vérifie si la simulation est en pause
+bool Simulation::isPaused() const {
+    return paused;
 }
 
 // Met à jour tous les boids et affiche la simulation
@@ -144,15 +177,6 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
         color
     );
     }
-
-
-// Méthode pour changer l'état de la simulation
-void Simulation::togglePause() {
-}
-// Méthode pour obtenir l'état de la simulation
-bool Simulation::isPaused() const {
-    return false;
-}
 
 Simulation::~Simulation() {
     reset();
