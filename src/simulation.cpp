@@ -11,14 +11,15 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
-    initializeBoidsRandomly(1000, M_PI, 10, 1);
+    initializeBoidsRandomly(10, M_PI, 10, 1);
 
     // Lancer la simulation
     for (size_t i = 0; i < 1000; i++) {
         for (int i = 0; i < boids.size(); i++) {
             for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION, Interaction::NOTHING}) {
-                boids[i]->applyRules(interaction, zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight, i));
-                if (zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight, i).size() != 0) {
+                auto neighbors =zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight, i); 
+                boids[i]->applyRules(interaction, neighbors);
+                if (neighbors.size() != 0) {
                     break;
                 }
             }
@@ -97,7 +98,7 @@ void Simulation::update() {
     
     // Mettre à jour chaque boid
     for (Boid* boid : boids) {
-        displayBoid(&image, boid); // Afficher le boid dans l'image
+        displayBoid(image, boid); // Afficher le boid dans l'image
     }
     
     // Afficher l'image dans une fenêtre OpenCV
@@ -106,7 +107,7 @@ void Simulation::update() {
 }
 
 // Affiche chaque boid avec une couleur selon son interaction
-void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
+void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
     // Déterminer la couleur en fonction de l'interaction
     cv::Scalar color;
     Interaction currentInteraction = boid->getCurrentInteraction();
@@ -134,11 +135,11 @@ void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
 
     // Calcul et dessin en une "pseudo-ligne"
     cv::fillPoly(
-        *image,
+        image,
         {std::vector<cv::Point>{
-            cv::Point(x + size * cos(angle), y - size * sin(angle)),                        // Sommet avant (pointe)
-            cv::Point(x + size * cos(angle + CV_PI * 3 / 4), y - size * sin(angle + CV_PI * 3 / 4)), // Coin gauche
-            cv::Point(x + size * cos(angle - CV_PI * 3 / 4), y - size * sin(angle - CV_PI * 3 / 4))  // Coin droit
+            cv::Point(x + size * cos(angle), y + size * sin(angle)),                        // Sommet avant (pointe)
+            cv::Point(x + size * cos(angle + CV_PI * 3 / 4), y + size * sin(angle + CV_PI * 3 / 4)), // Coin gauche
+            cv::Point(x + size * cos(angle - CV_PI * 3 / 4), y + size * sin(angle - CV_PI * 3 / 4))  // Coin droit
         }},
         color
     );
