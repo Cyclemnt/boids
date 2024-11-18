@@ -125,9 +125,24 @@ void Simulation::displayBoid(cv::Mat* image, const Boid* boid) {
             break;
     }
 
-    // Dessiner le boid sous forme de point
-    cv::circle(*image, cv::Point(boid->getPose().x, envHeight - boid->getPose().y), 3, color, -1); // Rayon de 3 pixels
-}
+          // Dessiner le boid sous forme de triangle isocèle
+    vPose pose = boid->getPose();
+    double x = pose.x;
+    double y = pose.y;
+    double size = 5.0;           // Taille globale du triangle
+    double angle = pose.theta; // Orientation du boid en radians
+
+    // Calcul et dessin en une "pseudo-ligne"
+    cv::fillPoly(
+        *image,
+        {std::vector<cv::Point>{
+            cv::Point(x + size * cos(angle), y - size * sin(angle)),                        // Sommet avant (pointe)
+            cv::Point(x + size * cos(angle + CV_PI * 3 / 4), y - size * sin(angle + CV_PI * 3 / 4)), // Coin gauche
+            cv::Point(x + size * cos(angle - CV_PI * 3 / 4), y - size * sin(angle - CV_PI * 3 / 4))  // Coin droit
+        }},
+        color
+    );
+    }
 
 
 // Méthode pour changer l'état de la simulation
