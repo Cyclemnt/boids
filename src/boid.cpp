@@ -1,6 +1,7 @@
 #include "../include/boid.hpp"
 #include "boid.hpp"
 #include <cmath>
+#include <algorithm>
 
 Boid::Boid(vPose pose_, int fov_, double speed_, double angVelocity_)
     : pose(pose_), fov(fov_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::NONE), timeStep(64) {}
@@ -30,41 +31,37 @@ void Boid::move(int envWidth, int envHeight) {
 }
 
 void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
+    if (neighbors.empty()) return; // Pas de voisins, aucune règle à appliquer
         
     currentInteraction = interaction;
+
+    // Calcul de la position moyenne des voisins
     vPose avgPose = {0, 0, 0};
-    for (int i = 0; i < neighbors.size(); i++) {
-        avgPose = avgPose + neighbors[i]->getPose();
+    for (const Boid* neighbor : neighbors) {
+        avgPose = avgPose + neighbor->getPose();
     }
     avgPose = avgPose / neighbors.size();
     vPose relPose = avgPose - pose;
-    int dir = 0;
+
+    // Calcul de la direction cible en fonction de l'interaction
+    double targetTheta = 0;
     if (interaction == Interaction::DISTANCING) {
-        if (fmod(atan2(relPose.y, relPose.x) + M_PI, 2*M_PI) < fmod(pose.theta, 2*M_PI)){
-            dir = -1;
-        }
-        else {
-            dir = 1;
-        }
+        targetTheta = atan2(-relPose.y, -relPose.x); // Éloignement, direction opposée
+    } else if (interaction == Interaction::ALIGNMENT) {
+        targetTheta = avgPose.theta; // Alignement avec l'orientation moyenne
+    } else if (interaction == Interaction::COHESION) {
+        targetTheta = atan2(relPose.y, relPose.x); // Cohésion, direction vers le centre
     }
-    else if (interaction == Interaction::ALIGNMENT) {
-        if (fmod(pose.theta - avgPose.theta, M_PI) > 1e-6) {
-            dir = -1;
-        }
-        else if (fmod(pose.theta - avgPose.theta, M_PI) < 1e-6){
-            dir = 1;
-        }
-    }
-    else if (interaction == Interaction::COHESION) {
-        if (fmod(atan2(relPose.y, relPose.x), 2*M_PI) < fmod(pose.theta, 2*M_PI))
-        dir = -1;
-        else {
-            dir = 1;
-        }
-    }
-    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
-    pose.theta += dir * (angVelocity * timeStepInSeconds);
-    pose.theta = fmod(pose.theta, 2*M_PI);
+
+    // Normaliser les angles entre -π et π
+    double angleDifference = fmod(targetTheta - pose.theta + 3 * M_PI, 2 * M_PI) - M_PI;
+
+    // Limiter la vitesse angulaire
+    double angularChange = std::clamp(angleDifference, -angVelocity * timeStep, angVelocity * timeStep);
+
+    // Mettre à jour l'orientation
+    pose.theta += angularChange;
+    pose.theta = fmod(pose.theta + 2 * M_PI, 2 * M_PI); // S'assurer que theta est dans [0, 2π)
 }
 
 vPose Boid::getPose() const {
@@ -72,6 +69,9 @@ vPose Boid::getPose() const {
 }
 Interaction Boid::getCurrentInteraction() const {
     return currentInteraction;
+}
+double Boid::getFOV() const {
+    return fov;
 }
 
 Boid::~Boid() {}

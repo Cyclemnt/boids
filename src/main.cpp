@@ -3,12 +3,9 @@
 #include <iostream>
 
 int main() {
-    Simulation sim(2000, 2000, TIMESTEP);
+    Simulation sim(1900, 1000, TIMESTEP);
 
     sim.run();
     
     return 0;
 }
-
-
-

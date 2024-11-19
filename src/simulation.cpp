@@ -10,7 +10,7 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
-    initializeBoidsRandomly(1000, M_PI, 100, 2);
+    initializeBoidsRandomly(1000, M_PI, 200, 2*M_PI);
 
     // Lancer la simulation
     while (true) {
@@ -95,7 +95,7 @@ void Simulation::handleKeyPress(int key) {
             std::cout << "Simulation réinitialisée." << std::endl;
             break;
         case '+': // Ajouter un boid
-            initializeBoidsRandomly(1, M_PI, 10, 1);
+            initializeBoidsRandomly(1, M_PI, 100, 2);
             std::cout << "Boid ajouté." << std::endl;
             break;
         case '-': // Supprimer un boid

@@ -12,7 +12,7 @@ class Boid
 private:
     int timeStep; 
     vPose pose;
-    int fov;
+    double fov;
     double speed, angVelocity;
     Interaction currentInteraction;
 
@@ -26,6 +26,7 @@ public:
 
     vPose getPose() const;
     Interaction getCurrentInteraction() const;
+    double getFOV() const;
     
     ~Boid();
 };
