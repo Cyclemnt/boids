@@ -18,11 +18,11 @@ class Simulation {
         // Lance la simulation
         void run();
         // Méthode pour ajouter un boid à la simulation
-        void addBoid(vPose pose, int fov, double maxSpeed, double maxAngVelocity);
+        void addBoid(vPose pose, double maxSpeed, double maxAngVelocity);
         // Méthode pour supprimer un boid de la simulation
         void removeBoid();
         // Méthode pour initialiser les boids de manière aléatoire
-        void initializeBoidsRandomly(int numBoids, int fov, double maxSpeed, double maxAngVelocity);
+        void initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity);
         // Méthode pour gérer les touches
         void handleKeyPress(int key);
         // Réinitialiser la simulation

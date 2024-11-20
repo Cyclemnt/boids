@@ -1,16 +1,17 @@
 #include "../include/simulation.hpp"
+#include <random>
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 40, 90);
+    zoneptr = new Zone(10, 40, 90, M_PI);
 }
 
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
-    initializeBoidsRandomly(1000, M_PI, 200, 2*M_PI);
+    initializeBoidsRandomly(500, 200, 2*M_PI);
 
     // Lancer la simulation
     while (true) {
@@ -34,8 +35,8 @@ void Simulation::run() {
 }
 
 // Méthode pour ajouter un boid à la simulation
-void Simulation::addBoid(vPose pose, int fov, double maxSpeed, double maxAngVelocity) {
-    Boid* newBoid = new Boid(pose, fov, maxSpeed, maxAngVelocity);
+void Simulation::addBoid(vPose pose, double maxSpeed, double maxAngVelocity) {
+    Boid* newBoid = new Boid(pose, maxSpeed, maxAngVelocity);
     newBoid->setTimeStep(timeStep);
     boids.push_back(newBoid);
 }
@@ -49,37 +50,20 @@ void Simulation::removeBoid() {
 }
 
 // Méthode pour initialiser les boids de manière aléatoire
-void Simulation::initializeBoidsRandomly(int numBoids, int fov, double maxSpeed, double maxAngVelocity) {
-    srand(time(0));
-    // Crée les boids
-    bool isPositionValid = true;
+void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity) {
+    // Création d'un moteur aléatoire avec une graine unique
+    std::random_device rd;  // Génére une graine à partir de l'environnement
+    std::mt19937 gen(rd()); // Mersenne Twister : générateur de nombres pseudo-aléatoires
+    std::uniform_real_distribution<> xDist(0, envWidth);
+    std::uniform_real_distribution<> yDist(0, envHeight);
+    std::uniform_real_distribution<> thetaDist(0, 2 * M_PI);
+    
     for (int i = 0; i < numBoids; ++i) {
-        vPose newPose = {0, 0, 0};
-        if (!boids.empty()) {isPositionValid = false;}
-
-        while (!isPositionValid) {
-            // Génère une nouvelle position aléatoire
-            newPose.x = rand() % envWidth;
-            newPose.y = rand() % envHeight;
-            newPose.theta = rand() % 2*M_PI;
-
-            // Vérifie que la position ne chevauche pas un boid existant
-            if (!boids.empty()) {
-                for (Boid* boid : boids) {
-                    double dx = newPose.x - boid->getPose().x;
-                    double dy = newPose.y - boid->getPose().y;
-                    double distance = sqrt(dx * dx + dy * dy);
-
-                    // Si la distance est assez grande, la position est valide
-                    if (distance > 10) { // 10 est la distance minimale entre deux boids
-                        isPositionValid = true;
-                        break;
-                    }
-                }
-            }
-        }
-        // Ajoute le boid avec la position valide
-        addBoid(newPose, fov, maxSpeed, maxAngVelocity);
+        vPose newPose;
+        newPose.x = xDist(gen);           // Position x aléatoire
+        newPose.y = yDist(gen);           // Position y aléatoire
+        newPose.theta = thetaDist(gen);   // Orientation aléatoire
+        addBoid(newPose, maxSpeed, maxAngVelocity);
     }
 }
 
@@ -95,7 +79,7 @@ void Simulation::handleKeyPress(int key) {
             std::cout << "Simulation réinitialisée." << std::endl;
             break;
         case '+': // Ajouter un boid
-            initializeBoidsRandomly(1, M_PI, 100, 2);
+            initializeBoidsRandomly(1, 200, 2*M_PI);
             std::cout << "Boid ajouté." << std::endl;
             break;
         case '-': // Supprimer un boid
