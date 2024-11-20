@@ -4,18 +4,17 @@
 #include <algorithm> // std::clamp()
 
 Boid::Boid(vPose pose_, double speed_, double angVelocity_)
-    : pose(pose_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::NONE), timeStep(64) {}
+    : pose(pose_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::NONE), timeStep(64 / 1000.0) {}
 
 // Setters
-void Boid::setTimeStep(int timeStep_) {
-    timeStep = timeStep_;
+void Boid::setTimeStep(double timeStep_) {
+    timeStep = timeStep_ / 1000.0; // En secondes
 }
 
 // Méthode pour faire avancer le boid
 void Boid::move(int envWidth, int envHeight) {
-    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
-    pose.x += (speed * timeStepInSeconds * cos(pose.theta));
-    pose.y += (speed * timeStepInSeconds * sin(pose.theta));
+    pose.x += (speed * timeStep * cos(pose.theta));
+    pose.y += (speed * timeStep * sin(pose.theta));
 
     // Assurer le comportement torique de l'environnement
     if (pose.x < 0) {
@@ -68,8 +67,7 @@ void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
     // Normaliser les angles entre -π et π
     double angleDifference = Types::customMod(targetTheta - pose.theta + M_PI, 2 * M_PI) - M_PI;
     // Limiter la vitesse angulaire
-    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
-    double angularChange = std::clamp(angleDifference, -angVelocity * timeStepInSeconds, angVelocity * timeStepInSeconds);
+    double angularChange = std::clamp(angleDifference, -angVelocity * timeStep, angVelocity * timeStep);
     // Mettre à jour l'orientation
     pose.theta += angularChange;
     pose.theta = Types::customMod(pose.theta, 2 * M_PI); // S'assurer que theta est dans [0, 2π[

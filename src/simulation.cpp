@@ -1,4 +1,5 @@
 #include "../include/simulation.hpp"
+#include <omp.h>
 #include <random>
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
@@ -10,6 +11,8 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 
 // Lance la Simulation
 void Simulation::run() {
+    omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles
+    std::cout << "Nombre de threads : " << omp_get_max_threads() << std::endl;
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(500, 200, 2*M_PI);
 
@@ -21,6 +24,7 @@ void Simulation::run() {
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
 
+        #pragma omp parallel for
         for (int i = 0; i < boids.size(); i++) {
             bool hasInteraction = false;
             for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
@@ -147,7 +151,7 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
             color = cv::Scalar(255, 0, 0); // Bleu
             break;
         case Interaction::NONE:
-            color =cv::Scalar(127,127,0); // Bleu-Vert 
+            color =cv::Scalar(127, 127, 0); // Bleu-Vert 
             break;
     }
 

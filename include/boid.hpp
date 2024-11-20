@@ -10,7 +10,7 @@ using Types::Interaction;
 class Boid
 {
 private:
-    int timeStep; 
+    double timeStep; // timeStep, précalculé en secondes
     vPose pose;
     double speed, angVelocity;
     Interaction currentInteraction;
@@ -19,7 +19,7 @@ public:
     Boid(vPose pose_, double speed_, double angVelocity_);
     
     // Setters
-    void setTimeStep(int timeStep_);
+    void setTimeStep(double timeStep_);
 
     // Méthode pour faire avancer le boid
     void move(int envWidth, int envHeight);

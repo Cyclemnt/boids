@@ -9,7 +9,7 @@ using Types::Interaction;
 class Zone
 {
 private : 
-    double rDistancing, rAlignment, rCohesion, fov;
+    double rDistancingSquared, rAlignmentSquared, rCohesionSquared, halvedFov;
 
 public : 
     Zone(double rDistancing_, double rAlignment_, double rCohesion_, double fov_);
