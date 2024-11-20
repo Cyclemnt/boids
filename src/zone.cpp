@@ -1,7 +1,5 @@
 #include "../include/zone.hpp"
 #include <cmath>
-#include <iostream>
-#include <cmath>
 
 Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double fov_)
     : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_), fov(fov_) {}
