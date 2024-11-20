@@ -66,7 +66,7 @@ void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
 
     // Mettre à jour l'orientation
     pose.theta += angularChange;
-    pose.theta = fmod(pose.theta + 2 * M_PI, 2 * M_PI); // S'assurer que theta est dans [0, 2π)
+    pose.theta = fmod(pose.theta + 2 * M_PI, 2 * M_PI); // S'assurer que theta est dans [0, 2π[
 }
 
 // Getters
