@@ -5,12 +5,12 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 40, 90, M_PI);
+    zoneptr = new Zone(10, 40, 90, 5);
 }
 
 // Lance la Simulation
 void Simulation::run() {
-    // Initialiser 50 boids avec des positions et paramètres aléatoires
+    // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(500, 200, 2*M_PI);
 
     // Lancer la simulation
@@ -20,17 +20,27 @@ void Simulation::run() {
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
+
         for (int i = 0; i < boids.size(); i++) {
-            for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION, Interaction::NONE}) {
-                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight); 
+            bool hasInteraction = false;
+            for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
+                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight);
                 if (!neighbors.empty()) {
                     boids[i]->applyRules(interaction, neighbors);
-                    break;
+                    hasInteraction = true;
+                    break; // Si une interaction est trouvée, arrêter de vérifier les autres
                 }
             }
+
+            // Si aucune interaction, appliquer NONE
+            if (!hasInteraction) {
+                boids[i]->applyRules(Interaction::NONE, {});
+            }
+
+            // Mettre à jour la position
             boids[i]->move(envWidth, envHeight);
         }
-        update();
+        updateDisplay();
     }
 }
 
@@ -57,12 +67,14 @@ void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double m
     std::uniform_real_distribution<> xDist(0, envWidth);
     std::uniform_real_distribution<> yDist(0, envHeight);
     std::uniform_real_distribution<> thetaDist(0, 2 * M_PI);
-
+    std::uniform_real_distribution<> offsetDist(-rand(), rand());
+    double offsetTheta = Types::customMod(offsetDist(gen), 2*M_PI);
+    
     for (int i = 0; i < numBoids; ++i) {
         vPose newPose;
-        newPose.x = xDist(gen);           // Position x aléatoire
-        newPose.y = yDist(gen);           // Position y aléatoire
-        newPose.theta = thetaDist(gen);   // Orientation aléatoire
+        newPose.x = xDist(gen);  // Position x aléatoire
+        newPose.y = yDist(gen);  // Position y aléatoire
+        newPose.theta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
         addBoid(newPose, maxSpeed, maxAngVelocity);
     }
 }
@@ -106,7 +118,7 @@ void Simulation::togglePause() {
 }
 
 // Met à jour tous les boids et affiche la simulation
-void Simulation::update() {
+void Simulation::updateDisplay() {
     // Effacer l'image précédente
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
     

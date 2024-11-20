@@ -1,6 +1,8 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
+#include <cmath>
+
 namespace Types
 {
     struct vPose {
@@ -29,6 +31,9 @@ namespace Types
     };
 
     enum class Interaction { DISTANCING, ALIGNMENT, COHESION, NONE };
+
+    // Modulo customisé
+    inline double customMod(double a, double n) {return fmod(fmod(a, n) + n, n);}
 } // namespace Types
 
 #endif // TYPES_HPP

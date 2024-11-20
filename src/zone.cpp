@@ -21,7 +21,7 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
             radius = rCohesion;
             break;
         case Interaction::NONE:
-            radius = 1e30;
+            return {};
     }
 
     // Parcourir chaque boid pour calculer la distance torique
@@ -46,9 +46,18 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
 
 // Méthode pour vérifier si un boid voisin est dans le fov du boid
 bool Zone::angleWithinFOV(const vPose& boidPose, const vPose& neighborPose) {
-    double angleToNeighbor = atan2(neighborPose.y - boidPose.y, neighborPose.x - boidPose.x);
-    double angleDifference = fmod(angleToNeighbor - boidPose.theta, 2 * M_PI);
-    return std::fabs(angleDifference) <= fov / 2;
+    // Calculer le vecteur directionnel du boid vers le voisin
+    double dx = neighborPose.x - boidPose.x;
+    double dy = neighborPose.y - boidPose.y;
+
+    // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe X
+    double angleToNeighbor = atan2(dy, dx);
+
+    // Calculer la différence angulaire par rapport à l'orientation du boid
+    double angleDifference = Types::customMod(angleToNeighbor - boidPose.theta + M_PI, 2 * M_PI) - M_PI;
+
+    // Vérifier si la différence angulaire est dans les limites du FOV
+    return std::fabs(angleDifference) <= (fov / 2);
 }
 
 Zone::~Zone() {

@@ -30,7 +30,7 @@ class Simulation {
         // Méthode pour gérer la pause de la simulation
         void togglePause();
         // Met à jour tous les boids et affiche la simulation
-        void update();
+        void updateDisplay();
         // Affiche chaque boid avec une couleur selon son interaction
         void displayBoid(cv::Mat& image, const Boid* boid);
         // Méthode pour obtenir l'état de la simulation

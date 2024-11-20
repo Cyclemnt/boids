@@ -1,6 +1,5 @@
-#define TIMESTEP 32
+#define TIMESTEP 16
 #include "../include/simulation.hpp"
-#include <iostream>
 
 int main() {
     Simulation sim(1900, 1000, TIMESTEP);
