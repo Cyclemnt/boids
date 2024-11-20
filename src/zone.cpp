@@ -1,11 +1,10 @@
 #include "../include/zone.hpp"
 #include <cmath>
-#include <iostream>
-#include <cmath>
 
-Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_)
-    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_) {}
+Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double fov_)
+    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_), fov(fov_) {}
 
+// Méthode pour obtenir tous les boids dans un certain rayon autour du boid
 std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, int envWidth, int envHeight) {
     std::vector<Boid*> neighbors;
     double radius = 0;
@@ -37,12 +36,19 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
             double distance = sqrt((dx * dx) + (dy * dy));
 
             // Ajouter le boid à la liste des voisins s'il est dans le rayon
-            if (distance < radius) {
+            if (distance < radius && angleWithinFOV(boid->getPose(), boids[i]->getPose())) {
                 neighbors.push_back(boids[i]);
             }
         }
     }
     return neighbors;
+}
+
+// Méthode pour vérifier si un boid voisin est dans le fov du boid
+bool Zone::angleWithinFOV(const vPose& boidPose, const vPose& neighborPose) {
+    double angleToNeighbor = atan2(neighborPose.y - boidPose.y, neighborPose.x - boidPose.x);
+    double angleDifference = fmod(angleToNeighbor - boidPose.theta, 2 * M_PI);
+    return std::fabs(angleDifference) <= fov / 2;
 }
 
 Zone::~Zone() {

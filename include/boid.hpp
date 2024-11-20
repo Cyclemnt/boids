@@ -12,21 +12,23 @@ class Boid
 private:
     int timeStep; 
     vPose pose;
-    double fov;
     double speed, angVelocity;
     Interaction currentInteraction;
 
 public:
-    Boid(vPose pose_, int fov_, double speed_, double angVelocity_);
-
+    Boid(vPose pose_, double speed_, double angVelocity_);
+    
+    // Setters
     void setTimeStep(int timeStep_);
 
+    // Méthode pour faire avancer le boid
     void move(int envWidth, int envHeight);
+    // Méthode pour modifier l'orientation du boid en fonction des voisins
     void applyRules(Interaction interaction, std::vector<Boid*> neighbors);
 
+    // Getters
     vPose getPose() const;
     Interaction getCurrentInteraction() const;
-    double getFOV() const;
     
     ~Boid();
 };

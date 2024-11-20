@@ -1,16 +1,17 @@
 #include "../include/boid.hpp"
 #include "boid.hpp"
 #include <cmath>
-#include <algorithm>
+#include <algorithm> // std::clamp()
 
-Boid::Boid(vPose pose_, int fov_, double speed_, double angVelocity_)
-    : pose(pose_), fov(fov_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::NONE), timeStep(64) {}
+Boid::Boid(vPose pose_, double speed_, double angVelocity_)
+    : pose(pose_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::NONE), timeStep(64) {}
 
 // Setters
 void Boid::setTimeStep(int timeStep_) {
     timeStep = timeStep_;
 }
 
+// Méthode pour faire avancer le boid
 void Boid::move(int envWidth, int envHeight) {
     double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
     pose.x += (speed * timeStepInSeconds * cos(pose.theta));
@@ -30,9 +31,12 @@ void Boid::move(int envWidth, int envHeight) {
     }
 }
 
+// Méthode pour modifier l'orientation du boid en fonction des voisins
 void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
-    if (neighbors.empty()) return; // Pas de voisins, aucune règle à appliquer
-        
+    if (neighbors.empty() || interaction == Interaction::NONE) { // Pas de voisins, aucune règle à appliquer
+        currentInteraction = Interaction::NONE;
+        return;
+    }
     currentInteraction = interaction;
 
     // Calcul de la position moyenne des voisins
@@ -54,24 +58,23 @@ void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
     }
 
     // Normaliser les angles entre -π et π
-    double angleDifference = fmod(targetTheta - pose.theta + 3 * M_PI, 2 * M_PI) - M_PI;
+    double angleDifference = fmod(targetTheta - pose.theta + M_PI, 2 * M_PI) - M_PI;
 
     // Limiter la vitesse angulaire
-    double angularChange = std::clamp(angleDifference, -angVelocity * timeStep, angVelocity * timeStep);
+    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
+    double angularChange = std::clamp(angleDifference, -angVelocity * timeStepInSeconds, angVelocity * timeStepInSeconds);
 
     // Mettre à jour l'orientation
     pose.theta += angularChange;
     pose.theta = fmod(pose.theta + 2 * M_PI, 2 * M_PI); // S'assurer que theta est dans [0, 2π)
 }
 
+// Getters
 vPose Boid::getPose() const {
     return pose;
 }
 Interaction Boid::getCurrentInteraction() const {
     return currentInteraction;
-}
-double Boid::getFOV() const {
-    return fov;
 }
 
 Boid::~Boid() {}
