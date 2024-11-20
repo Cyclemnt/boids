@@ -14,7 +14,7 @@ void Simulation::run() {
     omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles
     std::cout << "Nombre de threads : " << omp_get_max_threads() << std::endl;
     // Initialiser des boids avec des positions aléatoires
-    initializeBoidsRandomly(500, 200, 2*M_PI);
+    initializeBoidsRandomly(3000, 400, 2*M_PI);
 
     // Lancer la simulation
     while (true) {
@@ -132,7 +132,9 @@ void Simulation::updateDisplay() {
     }
     
     // Afficher l'image dans une fenêtre OpenCV
-    cv::imshow("Simulation de Boids", image);
+    cv::namedWindow("Simulation", cv::WINDOW_NORMAL);
+    cv::setWindowProperty("Simulation", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+    cv::imshow("Simulation", image);
 }
 
 // Affiche chaque boid avec une couleur selon son interaction
