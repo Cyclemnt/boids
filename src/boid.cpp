@@ -14,12 +14,10 @@ void Boid::setTimeStep(int timeStep_) {
 
 void Boid::setSpeed(double speed_) {
     speed = speed_;
-    std::cout << "Speed set to: " << speed << std::endl; // Debug
 }
 
 void Boid::setAngVelocity(double angVelocity_) {
     angVelocity = angVelocity_;
-    std::cout << "Angular velocity set to: " << angVelocity << std::endl; // Debug
 }
 
 // Méthode pour faire avancer le boid

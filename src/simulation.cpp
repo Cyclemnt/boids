@@ -5,17 +5,18 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 40, 90, 0, 80, 2 * M_PI, 2 * M_PI);
-    zoneprdt = new Zone(0, 0, 60, 30, 40, 2 * M_PI, 2 * M_PI);
+    zoneptr = new Zone(10, 30, 80, 0, 80, 5, 2 * M_PI);
+    zoneprdt = new Zone(0, 0, 80, 30, 10, 2 * M_PI, 5);
+    // légende des zones(distancing, alignement, cohesion, predation, fled, fov, instinct)
 }
 
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
-    initializeBoidsRandomly(500, 200, M_PI);
-    initializePredatorsRandomly(1, 250, M_PI);
-    double speedVar = 1.5;
-    double velocityVar = 1.25;
+    initializeBoidsRandomly(600, 200, 2 * M_PI);
+    initializePredatorsRandomly(3, 250, 2 * M_PI);
+    double speedVar = 2;
+    double velocityVar = 2;
     double originalSpeed = boids[0]->getSpeed();
     double originalAngVelocity = boids[0]->getAngVelocity();
     // Lancer la simulation
@@ -25,23 +26,19 @@ void Simulation::run() {
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
-
+        // simulation pour les boids
         for (int i = 0; i < boids.size(); i++) {
             bool hasInteraction = false;
             for (auto interaction : {Interaction::FLED, Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids, predators[i], predators, envWidth, envHeight);
+                auto neighbors = (interaction == Interaction::FLED) ? zoneptr->getNearBoids(interaction, boids[i], boids, predators[i], predators, predators[i], predators, envWidth, envHeight) 
+                                                                     :zoneptr->getNearBoids(interaction, boids[i], boids, boids[i], boids, predators[i], predators, envWidth, envHeight);   
                 if (!neighbors.empty()) {
+                    boids[i]->applyRules(interaction, neighbors);
+                    hasInteraction = true;
                     if (interaction == Interaction::FLED) {
                         boids[i]->setSpeed(originalSpeed * speedVar);
                         boids[i]->setAngVelocity(originalAngVelocity * velocityVar);
-
-                        boids[i]->applyRules(interaction, neighbors);
                     }
-                    else {
-                        boids[i]->applyRules(interaction, neighbors);
-                        break;
-                    }
-                    hasInteraction = true;
                     break; // Si une interaction est trouvée, arrêter de vérifier les autres
                 }
             }
@@ -56,22 +53,26 @@ void Simulation::run() {
                 boids[i]->setSpeed(originalSpeed);  // Réinitialiser la vitesse
                 boids[i]->setAngVelocity(originalAngVelocity);  // Réinitialiser la vitesse angulaire
         }
+        // simulation pour les predators
         for (int i = 0; i < predators.size(); i++) {
-            for (auto interaction : {Interaction::FLED, Interaction::NONE}) {
-                auto neighbors = zoneprdt->getNearBoids(interaction, predators[i], predators, predators[i], predators, envWidth, envHeight); 
+            bool hasInteraction = false;
+            for (auto interaction : {Interaction::FLED, Interaction::PREDATION, Interaction::COHESION}) {
+                auto neighbors = (interaction == Interaction::FLED) ?  zoneprdt->getNearBoids(interaction, predators[i], predators, predators[i], predators, predators[i], predators, envWidth, envHeight) 
+                                                                    :  zoneprdt->getNearBoids(interaction, predators[i], predators, boids[i], boids, predators[i], predators, envWidth, envHeight);
                 if (!neighbors.empty()) {
                     predators[i]->applyRules(interaction, neighbors);
-                    break;
+                    hasInteraction = true;
+                    break; // Si une interaction est trouvée, arrêter de vérifier les autres
                 }
             }
-            for (auto interaction : {Interaction::PREDATION, Interaction::COHESION, Interaction::NONE}) {
-                auto neighbors = zoneprdt->getNearBoids(interaction, boids[i], boids, predators[i], predators, envWidth, envHeight); 
-                if (!neighbors.empty()) {
-                    predators[i]->applyRules(interaction, neighbors);
-                    break;
-                }
+
+            // Si aucune interaction, appliquer NONE
+            if (!hasInteraction) {
+                boids[i]->applyRules(Interaction::NONE, {});
             }
-            predators[i]->move(envWidth, envHeight);
+
+            // Mettre à jour la position
+                predators[i]->move(envWidth, envHeight);
         }
         updateDisplay();
     }
@@ -257,13 +258,13 @@ void Simulation::displayPredator(cv::Mat& image, const Boid* predator) {
             color = cv::Scalar(0, 0, 255); // Rouge
             break;
         case Interaction::PREDATION:
-            color = cv::Scalar(0, 0, 130); // rouge foncé
+            color = cv::Scalar(0, 128, 255); // Rouge foncé
             break;
         case Interaction::COHESION:
             color = cv::Scalar(255, 0, 0); // Bleu
             break;
         case Interaction::NONE:
-            color =cv::Scalar(127,127,0); // Bleu-Vert 
+            color = cv::Scalar(127, 127, 0); // Bleu-Vert
             break;
     }
 
@@ -271,19 +272,62 @@ void Simulation::displayPredator(cv::Mat& image, const Boid* predator) {
     vPose pose = predator->getPose();
     double x = pose.x;
     double y = pose.y;
-    double size = 30;         // Taille globale du triangle
+    double size = 10;         // Taille globale du triangle
     double angle = pose.theta; // Orientation du boid en radians
 
-    // Calcul et dessin en une "pseudo-ligne"
+    // Créer une variable locale pour la traînée et son âge
+    static std::map<const Boid*, std::vector<cv::Point>> predatorTrails;
+    static std::map<const Boid*, std::vector<double>> predatorTrailTimes;
+
+    // Créer ou récupérer la traînée du prédator actuel
+    auto& trail = predatorTrails[predator];
+    auto& trailTimes = predatorTrailTimes[predator];
+
+    const double trailMaxLength = 15;  // Nombre maximum de points de traînée
+    const double maxTrailAge = 1.0;   // Temps après lequel les points disparaissent
+
+    // Ajouter la position actuelle à la traînée
+    trail.push_back(cv::Point(x, y));
+    trailTimes.push_back(0.0);  // L'âge du segment commence à 0
+
+    // Si la taille de la traînée dépasse la limite, supprimer les anciens points
+    if (trail.size() > trailMaxLength) {
+        trail.erase(trail.begin());
+        trailTimes.erase(trailTimes.begin());
+    }
+
+    // Mettre à jour les temps des points de traînée
+    for (size_t i = 0; i < trailTimes.size(); ++i) {
+        trailTimes[i] += 0.05;  //augmenter l'âge de 0.05 par appel
+    }
+
+    // Dessiner des points de traînée avec des couleurs qui deviennent plus sombres
+    for (size_t i = 0; i < trail.size(); ++i) {
+        double ageFactor = std::min(1.0, trailTimes[i] / maxTrailAge);
+        
+        // Plus le point est vieux, plus il devient sombre
+        cv::Scalar fadedColor = cv::Scalar(
+            std::max(0.0, color[0] - 150 * ageFactor), // rouge
+            std::max(0.0, color[1] - 150 * ageFactor), // vert
+            std::max(0.0, color[2] - 150 * ageFactor), // bleu
+            255 // Maintenir l'opacité complète
+        );
+
+        // Dessiner un cercle à chaque position de la traînée
+        cv::circle(image, trail[i], 1, fadedColor, -1);  // Rayon fixe à 1 pixel
+    }
+
+    // Dessiner le boid sous forme de triangle isocèle
     cv::fillPoly(
     image,
-        {std::vector<cv::Point>{
-            cv::Point(x + size * cos(angle), y + size * sin(angle)),                       // Sommet avant (pointe)
-            cv::Point(x + size * 0.5 * cos(angle + CV_PI * 3 / 4), y + size * 0.5 * sin(angle + CV_PI * 3 / 4)), // Coin gauche
-            cv::Point(x + size * 0.5 * cos(angle - CV_PI * 3 / 4), y + size * 0.5 * sin(angle - CV_PI * 3 / 4))  // Coin droit
-        }},
-        color
-    );
+    {std::vector<cv::Point>{
+        cv::Point(x + size * cos(angle), y + size * sin(angle)),// Sommet avant (pointe)
+        cv::Point(x + size * 0.7 * cos(angle + CV_PI * 3 / 4), y + size * 0.7 * sin(angle + CV_PI * 3 / 4)), // Coin arrière gauche
+        cv::Point(x + size * 0.3 * cos(angle + CV_PI), y + size * 0.3 * sin(angle + CV_PI)), // Pointe arrière
+        cv::Point(x + size * 0.7 * cos(angle - CV_PI * 3 / 4), y + size * 0.7 * sin(angle - CV_PI * 3 / 4))  // Coin arrière droit
+    }},
+    color
+);
 }
 
 // Vérifie si la simulation est en pause
