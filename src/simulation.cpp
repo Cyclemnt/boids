@@ -13,8 +13,11 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
     initializeBoidsRandomly(500, 200, M_PI);
-    initializePredatorsRandomly(1, 300, M_PI);
-
+    initializePredatorsRandomly(1, 250, M_PI);
+    double speedVar = 1.5;
+    double velocityVar = 1.25;
+    double originalSpeed = boids[0]->getSpeed();
+    double originalAngVelocity = boids[0]->getAngVelocity();
     // Lancer la simulation
     while (true) {
         // Gestion des entrées clavier
@@ -29,16 +32,10 @@ void Simulation::run() {
                 auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids, predators[i], predators, envWidth, envHeight);
                 if (!neighbors.empty()) {
                     if (interaction == Interaction::FLED) {
-                        double originalSpeed = boids[i]->getSpeed();
-                        double originalAngVelocity = boids[i]->getAngVelocity();
-
-                        boids[i]->setSpeed(originalSpeed * 7);
-                        boids[i]->setAngVelocity(originalAngVelocity * 4);
+                        boids[i]->setSpeed(originalSpeed * speedVar);
+                        boids[i]->setAngVelocity(originalAngVelocity * velocityVar);
 
                         boids[i]->applyRules(interaction, neighbors);
-
-                        boids[i]->setSpeed(originalSpeed);  // Réinitialiser la vitesse
-                        boids[i]->setAngVelocity(originalAngVelocity);  // Réinitialiser la vitesse angulaire
                     }
                     else {
                         boids[i]->applyRules(interaction, neighbors);
@@ -56,6 +53,8 @@ void Simulation::run() {
 
             // Mettre à jour la position
                 boids[i]->move(envWidth, envHeight);
+                boids[i]->setSpeed(originalSpeed);  // Réinitialiser la vitesse
+                boids[i]->setAngVelocity(originalAngVelocity);  // Réinitialiser la vitesse angulaire
         }
         for (int i = 0; i < predators.size(); i++) {
             for (auto interaction : {Interaction::FLED, Interaction::NONE}) {
