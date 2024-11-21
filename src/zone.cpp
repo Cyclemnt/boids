@@ -5,7 +5,7 @@ Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rP
     : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_), rPredation(rPredation_), rFled(rFled_), fov(fov_), instinct(instinct_) {}
 
 // Méthode pour obtenir tous les boids dans un certain rayon autour du boid
-std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, Boid* target, std::vector<Boid*> targets, Boid* predator, std::vector<Boid*> predators, int envWidth, int envHeight) {
+std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, std::vector<Boid*> targets, std::vector<Boid*> predators, int envWidth, int envHeight) {
     std::vector<Boid*> neighbors;
     double radius = 0;
     
@@ -44,13 +44,14 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
 
             // Vérifier si la cible est un predator
             bool isPredator = false;
-        for (int j = 0; j < predators.size(); j++) {
-            if (predators[j] == targets[i]) {
-                isPredator = true;
-                break;
+        if (!predators.empty()) {
+            for (int j = 0; j < predators.size(); j++) {
+                if (predators[j] == targets[i]) {
+                    isPredator = true;
+                    break;
+                }
             }
         }
-
         // Ajouter à la liste des voisins en fonction de l'interaction
         if (isPredator && distance < radius && angleWithinInstinct(boid->getPose(), targets[i]->getPose())) {
             neighbors.push_back(targets[i]);

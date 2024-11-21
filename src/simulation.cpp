@@ -2,7 +2,7 @@
 #include <random>
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
-    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
+    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), predators({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
     zoneptr = new Zone(10, 30, 80, 0, 80, 5, 2 * M_PI);
@@ -13,8 +13,8 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
-    initializeBoidsRandomly(600, 200, 2 * M_PI);
-    initializePredatorsRandomly(3, 250, 2 * M_PI);
+    initializeBoidsRandomly(500, 200, 2 * M_PI);
+    initializePredatorsRandomly(3, 200, 2 * M_PI);
     double speedVar = 2;
     double velocityVar = 2;
     double originalSpeed = boids[0]->getSpeed();
@@ -30,8 +30,8 @@ void Simulation::run() {
         for (int i = 0; i < boids.size(); i++) {
             bool hasInteraction = false;
             for (auto interaction : {Interaction::FLED, Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                auto neighbors = (interaction == Interaction::FLED) ? zoneptr->getNearBoids(interaction, boids[i], boids, predators[i], predators, predators[i], predators, envWidth, envHeight) 
-                                                                     :zoneptr->getNearBoids(interaction, boids[i], boids, boids[i], boids, predators[i], predators, envWidth, envHeight);   
+                auto neighbors = (interaction == Interaction::FLED) ? zoneptr->getNearBoids(interaction, boids[i], boids, predators, predators, envWidth, envHeight) 
+                                                                     :zoneptr->getNearBoids(interaction, boids[i], boids, boids, predators, envWidth, envHeight);   
                 if (!neighbors.empty()) {
                     boids[i]->applyRules(interaction, neighbors);
                     hasInteraction = true;
@@ -57,8 +57,8 @@ void Simulation::run() {
         for (int i = 0; i < predators.size(); i++) {
             bool hasInteraction = false;
             for (auto interaction : {Interaction::FLED, Interaction::PREDATION, Interaction::COHESION}) {
-                auto neighbors = (interaction == Interaction::FLED) ?  zoneprdt->getNearBoids(interaction, predators[i], predators, predators[i], predators, predators[i], predators, envWidth, envHeight) 
-                                                                    :  zoneprdt->getNearBoids(interaction, predators[i], predators, boids[i], boids, predators[i], predators, envWidth, envHeight);
+                auto neighbors = (interaction == Interaction::FLED) ?  zoneprdt->getNearBoids(interaction, predators[i], predators, predators, predators, envWidth, envHeight) 
+                                                                    :  zoneprdt->getNearBoids(interaction, predators[i], predators, boids, predators, envWidth, envHeight);
                 if (!neighbors.empty()) {
                     predators[i]->applyRules(interaction, neighbors);
                     hasInteraction = true;
@@ -179,6 +179,10 @@ void Simulation::reset() {
         delete boid;
     }
     boids.clear();
+    for (Boid* predator : predators) {
+    delete predator;
+    }
+    predators.clear();
 }
 
 // Méthode pour basculer l'état de pause
