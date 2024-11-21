@@ -21,16 +21,16 @@ set(SOURCES
     src/zone.cpp
 )
 
-#set(CUDA_SOURCES
-#    src/cuda_kernels.cu
-#)
+set(CUDA_SOURCES
+    src/cuda_kernels.cu
+)
 
 set(HEADERS
     include/types.hpp
     include/boid.hpp
     include/simulation.hpp
     include/zone.hpp
-#    include/cuda_kernels.cuh
+    include/cuda_kernels.cuh
 )
 
 # Définir les flags NVCC pour la compilation CUDA
@@ -38,11 +38,10 @@ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -arch=native")  # Détection automatique
 
 
 # Ajouter une cible CUDA pour les fichiers CUDA
-#cuda_add_library(cuda_kernels STATIC ${CUDA_SOURCES})
+cuda_add_library(cuda_kernels STATIC ${CUDA_SOURCES})
 
 # Ajouter un exécutable pour le projet principal
 add_executable(main ${SOURCES} ${HEADERS})
 
 # Lier les bibliothèques nécessaires
-#target_link_libraries(main ${OpenCV_LIBS} OpenMP::OpenMP_CXX cuda_kernels ${CUDA_LIBRARIES})
-target_link_libraries(main ${OpenCV_LIBS} OpenMP::OpenMP_CXX)
+target_link_libraries(main ${OpenCV_LIBS} OpenMP::OpenMP_CXX cuda_kernels ${CUDA_LIBRARIES})

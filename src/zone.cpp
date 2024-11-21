@@ -39,26 +39,20 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
 
             // Calculer la distance euclidienne avec les distances minimales en x et y
             double distanceSquared = (dxTorus * dxTorus) + (dyTorus * dyTorus);
+            
+            // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe x
+            double angleToNeighbor = atan2(dy, dx);
+            // Calculer la différence angulaire par rapport à l'orientation du boid
+            double angleDifference = Types::customMod(angleToNeighbor - boidPose.theta + M_PI, 2 * M_PI) - M_PI;
+            bool isWithinFOV = std::fabs(angleDifference) <= (halvedFov);
 
             // Ajouter le boid à la liste des voisins s'il est dans le rayon
-            if (distanceSquared < radiusSquared && angleWithinFOV(dx, dy, boidPose.theta)) {
+            if (distanceSquared < radiusSquared && isWithinFOV) {
                 neighbors.push_back(boids[i]);
             }
         }
     }
     return neighbors;
-}
-
-// Méthode pour vérifier si un boid voisin est dans le fov du boid
-bool Zone::angleWithinFOV(double dx, double dy, double boidPoseTheta) {
-    /// Calculer l'angle du vecteur (dx, dy) par rapport à l'axe x
-    double angleToNeighbor = atan2(dy, dx);
-
-    // Calculer la différence angulaire par rapport à l'orientation du boid
-    double angleDifference = Types::customMod(angleToNeighbor - boidPoseTheta + M_PI, 2 * M_PI) - M_PI;
-
-    // Vérifier si la différence angulaire est dans les limites du FOV
-    return std::fabs(angleDifference) <= (halvedFov);
 }
 
 Zone::~Zone() {

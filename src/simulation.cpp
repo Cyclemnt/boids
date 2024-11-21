@@ -14,7 +14,7 @@ void Simulation::run() {
     omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles
     std::cout << "Nombre de threads : " << omp_get_max_threads() << std::endl;
     // Initialiser des boids avec des positions aléatoires
-    initializeBoidsRandomly(3000, 400, 2*M_PI);
+    initializeBoidsRandomly(600, 400, 2*M_PI);
 
     // Lancer la simulation
     while (true) {
