@@ -8,6 +8,30 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     zoneptr = new Zone(10, 40, 90, 5);
 }
 
+
+void onMouse(int event, int x, int y, int flags, void* userdata) {
+    Simulation* simulation = reinterpret_cast<Simulation*>(userdata);
+    std::random_device rd;  // Génére une graine à partir de l'environnement
+    std::mt19937 gen(rd()); // Mersenne Twister : générateur de nombres pseudo-aléatoires
+    std::uniform_real_distribution<> thetaDist(0, 2 * M_PI);
+    std::uniform_real_distribution<> offsetDist(-rand(), rand());
+    double offsetTheta = Types::customMod(offsetDist(gen), 2*M_PI);
+    switch (event) {
+        case cv::EVENT_LBUTTONDOWN: // Ajouter un boid
+            vPose pose;
+            pose.x=x;
+            pose.y=y;
+            pose.theta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
+            simulation->addBoid(pose, 200, M_PI);
+            std::cout << "Boid ajouté " << std::endl;
+            break;
+        case cv::EVENT_RBUTTONDOWN: // Supprimer un boid
+            simulation->removeNearestBoid(x,y);
+            std::cout << "Boid supprimé." << std::endl;
+            break;
+    }
+}
+
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser des boids avec des positions aléatoires
@@ -20,7 +44,10 @@ void Simulation::run() {
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
-
+        cv::namedWindow("Simulation de Boids", cv::WINDOW_NORMAL);
+        cv::setWindowProperty("Simulation de Boids", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+        cv::setMouseCallback("Simulation de Boids", onMouse, this);
+        
         for (int i = 0; i < boids.size(); i++) {
             bool hasInteraction = false;
             for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
@@ -52,10 +79,23 @@ void Simulation::addBoid(vPose pose, double maxSpeed, double maxAngVelocity) {
 }
 
 // Méthode pour supprimer un boid de la simulation
-void Simulation::removeBoid() {
+void Simulation::removeNearestBoid(int x, int y) {
     if (!boids.empty()) {
-        delete boids.back();
-        boids.pop_back();
+        std::vector<std::pair<double,int>> distances;
+        // Parcourir chaque boid pour calculer la distance torique
+        for (int i = 0; i < boids.size(); i++) {
+                // Calculer la distance en x en tenant compte de l'environnement torique
+                double dx = std::fabs(x - boids[i]->getPose().x);
+                // Calculer la distance en y en tenant compte de l'environnement torique
+                double dy = std::fabs(y - boids[i]->getPose().y);
+                // Calculer la distance euclidienne avec les distances minimales en x et y
+                double distance = sqrt((dx * dx) + (dy * dy));
+                
+                distances.push_back(std::make_pair (distance,i));
+        }
+    std::sort(distances.begin(),distances.end()); 
+    
+    boids.erase(boids.begin()+distances[0].second);
     }
 }
 
@@ -90,14 +130,6 @@ void Simulation::handleKeyPress(int key) {
             reset();
             std::cout << "Simulation réinitialisée." << std::endl;
             break;
-        case '+': // Ajouter un boid
-            initializeBoidsRandomly(1, 200, 2*M_PI);
-            std::cout << "Boid ajouté." << std::endl;
-            break;
-        case '-': // Supprimer un boid
-            removeBoid();
-            std::cout << "Boid supprimé." << std::endl;
-            break;
         case 27: // Échapper (ESC) pour quitter
             std::cout << "Simulation terminée." << std::endl;
             exit(0);
@@ -128,6 +160,8 @@ void Simulation::updateDisplay() {
     }
     
     // Afficher l'image dans une fenêtre OpenCV
+    cv::namedWindow("Simulation de Boids", cv::WINDOW_NORMAL);
+    cv::setWindowProperty("Simulation de Boids", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
     cv::imshow("Simulation de Boids", image);
 }
 
