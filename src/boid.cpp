@@ -11,6 +11,15 @@ void Boid::setTimeStep(int timeStep_) {
     timeStep = timeStep_;
 }
 
+// Setters
+void Boid::setSpeed(double speed_) {
+    speed = speed_;
+}
+
+void Boid::setAngVelocity(double angVelocity_) {
+    angVelocity = angVelocity_;
+}
+
 // Méthode pour faire avancer le boid
 void Boid::move(int envWidth, int envHeight) {
     double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
@@ -62,7 +71,13 @@ void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
         targetTheta = atan2(avgThetaY, avgThetaX);    // Alignement avec l'orientation moyenne
     } else if (interaction == Interaction::COHESION) {
         vPose relPose = avgPose - pose;
-        targetTheta = atan2(relPose.y, relPose.x);    // Cohésion, direction vers le centre
+        targetTheta = atan2(relPose.y, relPose.x); // Cohésion, direction vers le centre
+    } else if (interaction == Interaction::FLED) {
+        vPose relPose = avgPose - pose;
+        targetTheta = atan2(-relPose.y, -relPose.x);  // Éloignement, direction opposée au predator       
+    }else if (interaction == Interaction::PREDATION) {
+        vPose relPose = avgPose - pose;
+        targetTheta = atan2(relPose.y, relPose.x); // Cohésion raproché
     }
 
     // Normaliser les angles entre -π et π
@@ -83,5 +98,13 @@ vPose Boid::getPose() const {
 Interaction Boid::getCurrentInteraction() const {
     return currentInteraction;
 }
+double Boid::getSpeed() const {
+    return speed;
+}
+
+double Boid::getAngVelocity() const {
+    return angVelocity;
+}
+
 
 Boid::~Boid() {}

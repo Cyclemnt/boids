@@ -20,7 +20,8 @@ public:
     
     // Setters
     void setTimeStep(int timeStep_);
-
+    void setSpeed(double speed_);
+    void setAngVelocity(double angVelocity_);
     // Méthode pour faire avancer le boid
     void move(int envWidth, int envHeight);
     // Méthode pour modifier l'orientation du boid en fonction des voisins
@@ -29,6 +30,9 @@ public:
     // Getters
     vPose getPose() const;
     Interaction getCurrentInteraction() const;
+    double getSpeed() const;
+    double getAngVelocity() const;
+
     
     ~Boid();
 };
