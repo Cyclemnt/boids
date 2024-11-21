@@ -30,7 +30,7 @@ namespace Types
         }
     };
 
-    enum class Interaction { DISTANCING, ALIGNMENT, COHESION, NONE };
+    enum class Interaction { DISTANCING, ALIGNMENT, COHESION, NONE,FOLLOW };
 
     // Modulo customisé
     inline double customMod(double a, double n) {return fmod(fmod(a, n) + n, n);}

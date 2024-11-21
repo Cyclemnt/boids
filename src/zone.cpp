@@ -1,11 +1,11 @@
 #include "../include/zone.hpp"
 #include <cmath>
 
-Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double fov_)
-    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_), fov(fov_) {}
+Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rFollow_, double fov_, double instinct_)
+    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_),rFollow(rFollow_), fov(fov_), instinct(instinct_) {}
 
 // Méthode pour obtenir tous les boids dans un certain rayon autour du boid
-std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, int envWidth, int envHeight) {
+std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids,Boid* mouse, int envWidth, int envHeight) {
     std::vector<Boid*> neighbors;
     double radius = 0;
     
@@ -22,9 +22,27 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
             break;
         case Interaction::NONE:
             return {};
+        case Interaction::FOLLOW:
+            radius = rFollow;
+            break;
     }
 
-    // Parcourir chaque boid pour calculer la distance torique
+    // Instruction différente pour le suivi car les boids suivent sans prendre en compte leur FOV
+    if (interaction==Interaction::FOLLOW){
+        // Calculer la distance en x en tenant compte de l'environnement torique
+        double dx= std::min(std::fabs(boid->getPose().x -mouse->getPose().x), envWidth - std::fabs(boid->getPose().x - mouse->getPose().x));
+        // Calculer la distance en y en tenant compte de l'environnement torique
+        double dy = std::min(std::fabs(boid->getPose().y - mouse->getPose().y), envHeight - std::fabs(boid->getPose().y - mouse->getPose().y));
+
+        // Calculer la distance euclidienne avec les distances minimales en x et y
+        double distance = sqrt((dx * dx) + (dy * dy));
+        if (distance < radius) {
+        neighbors.push_back(mouse);
+        
+        }
+        return neighbors;
+    }
+    // Parcourir chaque boid pour calculer la distance torique pour les autres interactions
     for (int i = 0; i < boids.size(); i++) {
         if (boid->getPose() != boids[i]->getPose()) {
             // Calculer la distance en x en tenant compte de l'environnement torique
@@ -45,7 +63,7 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
 }
 
 // Méthode pour vérifier si un boid voisin est dans le fov du boid
-bool Zone::angleWithinFOV(const vPose& boidPose, const vPose& neighborPose) {
+bool Zone::angleWithinFOV(const vPose& boidPose, const vPose& neighborPose){
     // Calculer le vecteur directionnel du boid vers le voisin
     double dx = neighborPose.x - boidPose.x;
     double dy = neighborPose.y - boidPose.y;

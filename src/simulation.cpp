@@ -1,16 +1,24 @@
 #include "../include/simulation.hpp"
 #include <random>
 
+
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
-    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false) {
+    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false), mouseON(false){
     // Création d'une image de la taille de la simulation
-    cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 40, 90, 5);
+    cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);  
+    zoneptr = new Zone(10, 40, 90, 300, M_PI,2*M_PI); // Instanciation de la taille des rayons d'interaction des boids ainsi que leur FOV
+    vPose mousePose = {INFINITY,INFINITY,0};  //Instantiation de la position de la souris à 0,0,0
+    mouse = new Boid(mousePose, 0, 0); // Vitesse et rotation inutiles pour la souris
+    lastMouseUpdateTime = std::chrono::steady_clock::now();
 }
 
-
+// Fonction pour agir en fonction des évènements souris 
 void onMouse(int event, int x, int y, int flags, void* userdata) {
+     
     Simulation* simulation = reinterpret_cast<Simulation*>(userdata);
+     auto now = std::chrono::steady_clock::now();
+    // Mettre à jour le dernier temps d'update
+    simulation->lastMouseUpdateTime = now;
     std::random_device rd;  // Génére une graine à partir de l'environnement
     std::mt19937 gen(rd()); // Mersenne Twister : générateur de nombres pseudo-aléatoires
     std::uniform_real_distribution<> thetaDist(0, 2 * M_PI);
@@ -25,18 +33,29 @@ void onMouse(int event, int x, int y, int flags, void* userdata) {
             simulation->addBoid(pose, 200, M_PI);
             std::cout << "Boid ajouté " << std::endl;
             break;
+
         case cv::EVENT_RBUTTONDOWN: // Supprimer un boid
-            simulation->removeNearestBoid(x,y);
+            simulation->removeNearestBoid(x,y);   
             std::cout << "Boid supprimé." << std::endl;
             break;
+
+        case cv::EVENT_MOUSEMOVE:
+        // Vérifier si suffisamment de temps s'est écoulé depuis la dernière mise à jour
+            if (flags==cv::EVENT_FLAG_CTRLKEY){
+                simulation->updateMousePosition(x,y);  // Mettre à jour la position de la souris 
+            }
+            break;
+
+            
     }
 }
 
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser des boids avec des positions aléatoires
-    initializeBoidsRandomly(500, 200, 2*M_PI);
-
+    initializeBoidsRandomly(400, 200, 2*M_PI);
+    cv::namedWindow("Simulation de Boids", cv::WINDOW_NORMAL);
+    
     // Lancer la simulation
     while (true) {
         // Gestion des entrées clavier
@@ -44,14 +63,23 @@ void Simulation::run() {
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
-        cv::namedWindow("Simulation de Boids", cv::WINDOW_NORMAL);
-        cv::setWindowProperty("Simulation de Boids", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
-        cv::setMouseCallback("Simulation de Boids", onMouse, this);
-        
+
+        // Si les events souris sont désactivés ne pas mettre à jour la position de la souris pour optimiser 
+        if (!mouseON) {
+            // Active le callback souris
+            cv::setMouseCallback("Simulation de Boids", onMouse, this);
+
+        } else {
+            // Désactive le callback souris
+            cv::setMouseCallback("Simulation de Boids", nullptr, nullptr);
+        }
         for (int i = 0; i < boids.size(); i++) {
             bool hasInteraction = false;
-            for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight);
+            for (auto interaction : {Interaction::DISTANCING, Interaction::FOLLOW, Interaction::ALIGNMENT, Interaction::COHESION}) {
+                if (interaction==Interaction::FOLLOW){
+                    if (mouseON) continue;  // Si évènements souris désactivé ne pas suivre la souris
+                }
+                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids,mouse, envWidth, envHeight);
                 if (!neighbors.empty()) {
                     boids[i]->applyRules(interaction, neighbors);
                     hasInteraction = true;
@@ -67,8 +95,13 @@ void Simulation::run() {
             // Mettre à jour la position
             boids[i]->move(envWidth, envHeight);
         }
-        updateDisplay();
+        updateDisplay(); // Mettre à jour l'affichage
     }
+}
+
+//Méthode pour mettre à jour la position de la souris
+void Simulation::updateMousePosition(int x, int y){
+    mouse->moveMouse(x,y);
 }
 
 // Méthode pour ajouter un boid à la simulation
@@ -88,14 +121,14 @@ void Simulation::removeNearestBoid(int x, int y) {
                 double dx = std::fabs(x - boids[i]->getPose().x);
                 // Calculer la distance en y en tenant compte de l'environnement torique
                 double dy = std::fabs(y - boids[i]->getPose().y);
-                // Calculer la distance euclidienne avec les distances minimales en x et y
+                // Calculer la distance euclidienne entre la souris et le boid parcouru
                 double distance = sqrt((dx * dx) + (dy * dy));
                 
                 distances.push_back(std::make_pair (distance,i));
         }
-    std::sort(distances.begin(),distances.end()); 
+    std::sort(distances.begin(),distances.end()); //Trie la liste de boids autour de lui du plus proche au plus loin 
     
-    boids.erase(boids.begin()+distances[0].second);
+    boids.erase(boids.begin()+distances[0].second); // Supprime le boid le plus proche de la souris
     }
 }
 
@@ -133,6 +166,9 @@ void Simulation::handleKeyPress(int key) {
         case 27: // Échapper (ESC) pour quitter
             std::cout << "Simulation terminée." << std::endl;
             exit(0);
+        case 'm' : // Activer ou désactiver le suivi de la souris
+            toggleMouse();
+            break;
     }
 }
 
@@ -149,6 +185,10 @@ void Simulation::togglePause() {
     paused = !paused;
 }
 
+// Méthode pour basculer l'état de suivi de la souris 
+void Simulation::toggleMouse() {
+    mouseON = !mouseON;
+}
 // Met à jour tous les boids et affiche la simulation
 void Simulation::updateDisplay() {
     // Effacer l'image précédente
@@ -161,7 +201,7 @@ void Simulation::updateDisplay() {
     
     // Afficher l'image dans une fenêtre OpenCV
     cv::namedWindow("Simulation de Boids", cv::WINDOW_NORMAL);
-    cv::setWindowProperty("Simulation de Boids", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+    //cv::setWindowProperty("Simulation de Boids", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
     cv::imshow("Simulation de Boids", image);
 }
 
@@ -182,6 +222,9 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
             break;
         case Interaction::NONE:
             color =cv::Scalar(127,127,0); // Bleu-Vert 
+            break;
+        case Interaction::FOLLOW:
+            color =cv::Scalar(127,0,127); // Bleu-Vert 
             break;
     }
 

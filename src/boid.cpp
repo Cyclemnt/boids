@@ -2,6 +2,7 @@
 #include "boid.hpp"
 #include <cmath>
 #include <algorithm> // std::clamp()
+#include <iostream>
 
 Boid::Boid(vPose pose_, double speed_, double angVelocity_)
     : pose(pose_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::NONE), timeStep(64) {}
@@ -9,6 +10,11 @@ Boid::Boid(vPose pose_, double speed_, double angVelocity_)
 // Setters
 void Boid::setTimeStep(int timeStep_) {
     timeStep = timeStep_;
+}
+
+void Boid::moveMouse(int x, int y){
+    pose.x = x;
+    pose.y = y;    
 }
 
 // Méthode pour faire avancer le boid
@@ -63,6 +69,9 @@ void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
     } else if (interaction == Interaction::COHESION) {
         vPose relPose = avgPose - pose;
         targetTheta = atan2(relPose.y, relPose.x);    // Cohésion, direction vers le centre
+    } else if (interaction == Interaction::FOLLOW) {
+        vPose relPose = avgPose - pose;
+        targetTheta = atan2(relPose.y, relPose.x);    // Suivie de souris, direction vers la souris
     }
 
     // Normaliser les angles entre -π et π
