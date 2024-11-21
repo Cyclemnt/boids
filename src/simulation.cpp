@@ -14,7 +14,7 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
     initializeBoidsRandomly(500, 200, 2 * M_PI);
-    initializePredatorsRandomly(3, 200, 2 * M_PI);
+    initializePredatorsRandomly(3, 300, 2 * M_PI);
     double speedVar = 2;
     double velocityVar = 2;
     double originalSpeed = boids[0]->getSpeed();
@@ -218,7 +218,7 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
     Interaction currentInteraction = boid->getCurrentInteraction();
     switch (currentInteraction) {
         case Interaction::DISTANCING:
-            color = cv::Scalar(0, 0, 255); // Rouge
+            color = cv::Scalar(0, 255, 255); // Jaune
             break;
         case Interaction::FLED:
             color = cv::Scalar(230, 216, 173); // Bleu clair
@@ -227,10 +227,10 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
             color = cv::Scalar(0, 255, 0); // Vert
             break;
         case Interaction::COHESION:
-            color = cv::Scalar(255, 0, 0); // Bleu
+            color = cv::Scalar(227, 0, 0); // Bleu
             break;
         case Interaction::NONE:
-            color =cv::Scalar(127,127,0); // Bleu-Vert 
+            color =cv::Scalar(127,127,127); // Gris
             break;
     }
 
@@ -259,16 +259,16 @@ void Simulation::displayPredator(cv::Mat& image, const Boid* predator) {
     Interaction currentInteraction = predator->getCurrentInteraction();
     switch (currentInteraction) {
         case Interaction::FLED:
-            color = cv::Scalar(0, 0, 255); // Rouge
+            color = cv::Scalar(0, 255, 255); // Jaune
             break;
         case Interaction::PREDATION:
-            color = cv::Scalar(0, 128, 255); // Rouge foncé
+            color = cv::Scalar(0, 0, 201); // Rouge
             break;
         case Interaction::COHESION:
-            color = cv::Scalar(255, 0, 0); // Bleu
+            color = cv::Scalar(201, 0, 201); // Violet
             break;
         case Interaction::NONE:
-            color = cv::Scalar(127, 127, 0); // Bleu-Vert
+            color = cv::Scalar(127, 127, 127); // Gris
             break;
     }
 
