@@ -10,18 +10,19 @@ using Types::Interaction;
 class Boid
 {
 private:
-    int timeStep; 
+    int timeStep, lifeTime; 
     vPose pose;
     double speed, angVelocity;
     Interaction currentInteraction;
 
 public:
-    Boid(vPose pose_, double speed_, double angVelocity_);
+    Boid(vPose pose_, double speed_, double angVelocity_, int lifeTime_);
     
     // Setters
     void setTimeStep(int timeStep_);
     void setSpeed(double speed_);
     void setAngVelocity(double angVelocity_);
+    void setLifeTime(int lifeTime_);
     // Méthode pour faire avancer le boid
     void move(int envWidth, int envHeight);
     // Méthode pour modifier l'orientation du boid en fonction des voisins
@@ -32,6 +33,7 @@ public:
     Interaction getCurrentInteraction() const;
     double getSpeed() const;
     double getAngVelocity() const;
+    int getLifeTime() const;
 
     
     ~Boid();

@@ -5,20 +5,22 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), predators({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 30, 80, 0, 80, 1, 5, 2 * M_PI);
-    zoneprdt = new Zone(0, 0, 80, 30, 10, 0, 2 * M_PI, 5);
+    zoneptr = new Zone(10, 30, 80, 0, 80, 2, 5, 2 * M_PI);
+    zoneprdt = new Zone(0, 0, 80, 25, 10, 2, 2 * M_PI, 5);
     // légende des zones(distancing, alignement, cohesion, predation, fled, catch, fov, instinct)
 }
 
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
-    initializeBoidsRandomly(300, 200, 2 * M_PI);
-    initializePredatorsRandomly(1, 300, 2 * M_PI);
     double speedVar = 2;
     double velocityVar = 2;
-    double originalSpeed = boids[0]->getSpeed();
-    double originalAngVelocity = boids[0]->getAngVelocity();
+    double originalSpeed = 75;
+    double originalAngVelocity =  2 * M_PI;
+    int lifePred = 400;
+    int lifeBoid = 100; // fatigue boid 
+    initializeBoidsRandomly(400, originalSpeed, originalAngVelocity, lifeBoid);
+    initializePredatorsRandomly(1, 170, 2 * M_PI, lifePred);
     // Lancer la simulation
     while (true) {
         // Gestion des entrées clavier
@@ -36,7 +38,7 @@ void Simulation::run() {
                     if (interaction == Interaction::CATCH) {
                         vPose boidPose = boids[i]->getPose();
                         removeThisBoid(boids[i]);
-                        addPredator(boidPose, 300, 2 * M_PI);
+                        addPredator(boidPose, 150, 2 * M_PI, lifePred);
                         break;
                     } else {
                         boids[i]->applyRules(interaction, neighbors);
@@ -63,13 +65,19 @@ void Simulation::run() {
         // simulation pour les predators
         for (int i = 0; i < predators.size(); i++) {
             bool hasInteraction = false;
-            for (auto interaction : {Interaction::FLED, Interaction::PREDATION, Interaction::COHESION}) {
+            for (auto interaction : {Interaction::CATCH, Interaction::FLED, Interaction::PREDATION, Interaction::COHESION}) {
                 auto neighbors = (interaction == Interaction::FLED) ?  zoneprdt->getNearBoids(interaction, predators[i], predators, predators, predators, envWidth, envHeight) 
                                                                     :  zoneprdt->getNearBoids(interaction, predators[i], predators, boids, predators, envWidth, envHeight);
                 if (!neighbors.empty()) {
-                    predators[i]->applyRules(interaction, neighbors);
-                    hasInteraction = true;
-                    break; // Si une interaction est trouvée, arrêter de vérifier les autres
+                    if (interaction == Interaction::CATCH) {
+                        predators[i]->setLifeTime(lifePred);
+                        hasInteraction = true;
+                        break;
+                    } else {
+                        predators[i]->applyRules(interaction, neighbors);
+                        hasInteraction = true;
+                        break; // Si une interaction est trouvée, arrêter de vérifier les 
+                    }
                 }
             }
 
@@ -79,15 +87,26 @@ void Simulation::run() {
             }
 
             // Mettre à jour la position
-                predators[i]->move(envWidth, envHeight);
+            predators[i]->move(envWidth, envHeight);
+
+            // Décrémenter le temps de vie du predator
+            predators[i]->setLifeTime(predators[i]->getLifeTime() - 1);
+
+            // Supprimez le predator si son survivalTime atteint zéro
+            if (predators[i]->getLifeTime() <= 0) {
+                vPose predatorPose = predators[i]->getPose();
+                removeThisPredator(predators[i]);
+                addBoid(predatorPose, originalSpeed, originalAngVelocity, lifeBoid);
+                i--;    // Ajustez l'indice après suppression
+                }
         }
         updateDisplay();
     }
 }
 
 // Méthode pour ajouter un boid à la simulation
-void Simulation::addBoid(vPose pose, double maxSpeed, double maxAngVelocity) {
-    Boid* newBoid = new Boid(pose, maxSpeed, maxAngVelocity);
+void Simulation::addBoid(vPose pose, double maxSpeed, double maxAngVelocity, int lifeTime) {
+    Boid* newBoid = new Boid(pose, maxSpeed, maxAngVelocity, lifeTime);
     newBoid->setTimeStep(timeStep);
     boids.push_back(newBoid);
 }
@@ -110,8 +129,8 @@ void Simulation::removeThisBoid(Boid* boid) {
 
 
 // Méthode pour ajouter un predator à la simulation
-void Simulation::addPredator(vPose pose, double maxSpeed, double maxAngVelocity) {
-    Boid* newPredator = new Boid(pose, maxSpeed, maxAngVelocity);
+void Simulation::addPredator(vPose pose, double maxSpeed, double maxAngVelocity, int lifeTime) {
+    Boid* newPredator = new Boid(pose, maxSpeed, maxAngVelocity, lifeTime);
     newPredator->setTimeStep(timeStep);
     predators.push_back(newPredator);
 }
@@ -133,7 +152,7 @@ void Simulation::removeThisPredator(Boid* predator) {
 }
 
 // Méthode pour initialiser les boids de manière aléatoire
-void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity) {
+void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity, int lifeTime) {
     // Création d'un moteur aléatoire avec une graine unique
     std::random_device rd;  // Génére une graine à partir de l'environnement
     std::mt19937 gen(rd()); // Mersenne Twister : générateur de nombres pseudo-aléatoires
@@ -148,12 +167,12 @@ void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double m
         newPose.x = xDist(gen);  // Position x aléatoire
         newPose.y = yDist(gen);  // Position y aléatoire
         newPose.theta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
-        addBoid(newPose, maxSpeed, maxAngVelocity);
+        addBoid(newPose, maxSpeed, maxAngVelocity, lifeTime);
     }
 }
 
 // Méthode pour initialiser les boids de manière aléatoire
-void Simulation::initializePredatorsRandomly(int numBoids, double maxSpeed, double maxAngVelocity) {
+void Simulation::initializePredatorsRandomly(int numBoids, double maxSpeed, double maxAngVelocity, int lifeTime) {
     // Création d'un moteur aléatoire avec une graine unique
     std::random_device rd;  // Génére une graine à partir de l'environnement
     std::mt19937 gen(rd()); // Mersenne Twister : générateur de nombres pseudo-aléatoires
@@ -168,7 +187,7 @@ void Simulation::initializePredatorsRandomly(int numBoids, double maxSpeed, doub
         newPose.x = xDist(gen);  // Position x aléatoire
         newPose.y = yDist(gen);  // Position y aléatoire
         newPose.theta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
-        addPredator(newPose, maxSpeed, maxAngVelocity);
+        addPredator(newPose, maxSpeed, maxAngVelocity, lifeTime);
     }
 }
 
@@ -184,7 +203,7 @@ void Simulation::handleKeyPress(int key) {
             std::cout << "Simulation réinitialisée." << std::endl;
             break;
         case '+': // Ajouter un boid
-            initializeBoidsRandomly(1, 200, 2*M_PI);
+            initializeBoidsRandomly(1, 200, 2*M_PI, 500);
             std::cout << "Boid ajouté." << std::endl;
             break;
         case '-': // Supprimer un boid
@@ -303,47 +322,41 @@ void Simulation::displayPredator(cv::Mat& image, const Boid* predator) {
     double size = 10;         // Taille globale du triangle
     double angle = pose.theta; // Orientation du boid en radians
 
-    // Créer une variable locale pour la traînée et son âge
-    static std::map<const Boid*, std::vector<cv::Point>> predatorTrails;
-    static std::map<const Boid*, std::vector<double>> predatorTrailTimes;
+//  // Créer une variable statique pour stocker les positions historiques
+//  static std::map<const Boid*, std::vector<cv::Point>> predatorTrails;
 
-    // Créer ou récupérer la traînée du prédator actuel
-    auto& trail = predatorTrails[predator];
-    auto& trailTimes = predatorTrailTimes[predator];
+// // Paramètres
+// const double trailMaxLength = 15;  // Nombre maximum de positions stockées
+// const double maxTrailAge = 1.0;    // Durée de vie d'un point en secondes
+// const double timeStepIncrement = 0.05; // Incrément d'âge par appel
 
-    const double trailMaxLength = 15;  // Nombre maximum de points de traînée
-    const double maxTrailAge = 1.0;   // Temps après lequel les points disparaissent
+// // Récupérer ou créer la traînée pour le boid actuel
+// auto& trail = predatorTrails[predator];
 
-    // Ajouter la position actuelle à la traînée
-    trail.push_back(cv::Point(x, y));
-    trailTimes.push_back(0.0);  // L'âge du segment commence à 0
+// // Ajouter la position actuelle si elle est différente de la précédente
+// if (trail.empty() || cv::norm(trail.back() - cv::Point(x, y)) > 2.0) {
+//     trail.push_back(cv::Point(x, y)); // Nouveau point
+// }
 
-    // Si la taille de la traînée dépasse la limite, supprimer les anciens points
-    if (trail.size() > trailMaxLength) {
-        trail.erase(trail.begin());
-        trailTimes.erase(trailTimes.begin());
-    }
+// // Supprimer les anciens points si nécessaire
+// if (trail.size() > trailMaxLength) {
+//     trail.erase(trail.begin());
+// }
 
-    // Mettre à jour les temps des points de traînée
-    for (size_t i = 0; i < trailTimes.size(); ++i) {
-        trailTimes[i] += 0.05;  //augmenter l'âge de 0.05 par appel
-    }
+// // Dessiner un trait à chaque ancienne position
+// for (size_t i = 0; i < trail.size(); ++i) {
+//     // Calculer la couleur basée sur l'âge du point
+//     double ageFactor = std::min(1.0, (double)i / trailMaxLength);
+//     cv::Scalar fadedColor = cv::Scalar(
+//         std::max(0.0, color[0] - 150 * ageFactor), // Rouge
+//         std::max(0.0, color[1] - 150 * ageFactor), // Vert
+//         std::max(0.0, color[2] - 150 * ageFactor), // Bleu
+//         255                                      // Alpha (opacité)
+//     );
 
-    // Dessiner des points de traînée avec des couleurs qui deviennent plus sombres
-    for (size_t i = 0; i < trail.size(); ++i) {
-        double ageFactor = std::min(1.0, trailTimes[i] / maxTrailAge);
-        
-        // Plus le point est vieux, plus il devient sombre
-        cv::Scalar fadedColor = cv::Scalar(
-            std::max(0.0, color[0] - 150 * ageFactor), // rouge
-            std::max(0.0, color[1] - 150 * ageFactor), // vert
-            std::max(0.0, color[2] - 150 * ageFactor), // bleu
-            255 // Maintenir l'opacité complète
-        );
-
-        // Dessiner un cercle à chaque position de la traînée
-        cv::circle(image, trail[i], 1, fadedColor, -1);  // Rayon fixe à 1 pixel
-    }
+//     // Dessiner un petit trait (ligne d'un pixel de long) à cet emplacement
+//     cv::line(image, trail[i], trail[i], fadedColor, 1);
+// }
 
     // Dessiner le boid sous forme de triangle isocèle
     cv::fillPoly(

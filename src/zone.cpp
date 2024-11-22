@@ -56,9 +56,11 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
             }
         }
         // Ajouter à la liste des voisins en fonction de l'interaction
-        if (isPredator && distance < radius && angleWithinInstinct(boid->getPose(), targets[i]->getPose())) {
+        if (interaction == Interaction::CATCH && distance < radius) { // Si l'intéraction est CATCH alors on ne prend pas en compte l'angle de vue
             neighbors.push_back(targets[i]);
-        } else if (!isPredator && distance < radius && angleWithinFOV(boid->getPose(), targets[i]->getPose())) {
+        } else if (isPredator && distance < radius && angleWithinInstinct(boid->getPose(), targets[i]->getPose())) { // si la cible est un predator alors on prend en compte la vision avec l'instict
+            neighbors.push_back(targets[i]);
+        } else if (!isPredator && distance < radius && angleWithinFOV(boid->getPose(), targets[i]->getPose())) { // si la cible est un boid alors on prend en compte la vision avec le fov
             neighbors.push_back(targets[i]);
         }
         }

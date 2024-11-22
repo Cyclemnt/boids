@@ -4,8 +4,8 @@
 #include <cmath>
 #include <algorithm> // std::clamp()
 
-Boid::Boid(vPose pose_, double speed_, double angVelocity_)
-    : pose(pose_), speed(speed_), angVelocity(angVelocity_), currentInteraction(Interaction::NONE), timeStep(64) {}
+Boid::Boid(vPose pose_, double speed_, double angVelocity_, int lifeTime_)
+    : pose(pose_), speed(speed_), angVelocity(angVelocity_), lifeTime(lifeTime_), currentInteraction(Interaction::NONE), timeStep(64) {}
 
 // Setters
 void Boid::setTimeStep(int timeStep_) {
@@ -18,6 +18,10 @@ void Boid::setSpeed(double speed_) {
 
 void Boid::setAngVelocity(double angVelocity_) {
     angVelocity = angVelocity_;
+}
+
+void Boid::setLifeTime(int lifeTime_) {
+    lifeTime = lifeTime_;
 }
 
 // Méthode pour faire avancer le boid
@@ -106,5 +110,8 @@ double Boid::getAngVelocity() const {
     return angVelocity;
 }
 
+int Boid::getLifeTime() const {
+    return lifeTime;
+}
 
 Boid::~Boid() {}

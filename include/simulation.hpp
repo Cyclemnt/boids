@@ -20,21 +20,21 @@ class Simulation {
         // Lance la simulation
         void run();
         // Méthode pour ajouter un boid à la simulation
-        void addBoid(vPose pose, double maxSpeed, double maxAngVelocity);
+        void addBoid(vPose pose, double maxSpeed, double maxAngVelocity, int lifeTime);
         // Méthode pour supprimer un boid de la simulation
         void removeBoid();
         // Méthode pour supprimer un boid précis de la simulation
         void removeThisBoid(Boid* boid);
         // Méthode pour ajouter un predator à la simulation
-        void addPredator(vPose pose, double maxSpeed, double maxAngVelocity);
+        void addPredator(vPose pose, double maxSpeed, double maxAngVelocity, int lifeTime);
         // Méthode pour supprimer un predator de la simulation
         void removePredator();
         // Méthode pour supprimer un predator précis de la simulation
         void removeThisPredator(Boid* predator);
         // Méthode pour initialiser les boids de manière aléatoire
-        void initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity);
+        void initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity, int lifeTime);
         // Méthode pour initialiser les predators de manière aléatoire
-        void initializePredatorsRandomly(int numBoids, double maxSpeed, double maxAngVelocity);
+        void initializePredatorsRandomly(int numBoids, double maxSpeed, double maxAngVelocity, int lifeTime);
         // Méthode pour gérer les touches
         void handleKeyPress(int key);
         // Réinitialiser la simulation
