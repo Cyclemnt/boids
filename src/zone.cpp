@@ -1,8 +1,8 @@
 #include "../include/zone.hpp"
 #include <cmath>
 
-Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rPredation_, double rFled_, double fov_, double instinct_)
-    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_), rPredation(rPredation_), rFled(rFled_), fov(fov_), instinct(instinct_) {}
+Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rPredation_, double rFled_, double rCatch_, double fov_, double instinct_)
+    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_), rPredation(rPredation_), rFled(rFled_), rCatch(rCatch_), fov(fov_), instinct(instinct_) {}
 
 // Méthode pour obtenir tous les boids dans un certain rayon autour du boid
 std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, std::vector<Boid*> targets, std::vector<Boid*> predators, int envWidth, int envHeight) {
@@ -11,6 +11,9 @@ std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::
     
     // Définir le rayon en fonction de l'interaction
     switch (interaction) {
+        case Interaction::CATCH:
+            radius = rCatch;
+            break;
         case Interaction::DISTANCING:
             radius = rDistancing;
             break;

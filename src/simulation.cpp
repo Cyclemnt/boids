@@ -5,16 +5,16 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), predators({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 30, 80, 0, 80, 5, 2 * M_PI);
-    zoneprdt = new Zone(0, 0, 80, 30, 10, 2 * M_PI, 5);
-    // légende des zones(distancing, alignement, cohesion, predation, fled, fov, instinct)
+    zoneptr = new Zone(10, 30, 80, 0, 80, 1, 5, 2 * M_PI);
+    zoneprdt = new Zone(0, 0, 80, 30, 10, 0, 2 * M_PI, 5);
+    // légende des zones(distancing, alignement, cohesion, predation, fled, catch, fov, instinct)
 }
 
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser 50 boids avec des positions et paramètres aléatoires
-    initializeBoidsRandomly(500, 200, 2 * M_PI);
-    initializePredatorsRandomly(3, 300, 2 * M_PI);
+    initializeBoidsRandomly(300, 200, 2 * M_PI);
+    initializePredatorsRandomly(1, 300, 2 * M_PI);
     double speedVar = 2;
     double velocityVar = 2;
     double originalSpeed = boids[0]->getSpeed();
@@ -29,17 +29,24 @@ void Simulation::run() {
         // simulation pour les boids
         for (int i = 0; i < boids.size(); i++) {
             bool hasInteraction = false;
-            for (auto interaction : {Interaction::FLED, Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                auto neighbors = (interaction == Interaction::FLED) ? zoneptr->getNearBoids(interaction, boids[i], boids, predators, predators, envWidth, envHeight) 
-                                                                     :zoneptr->getNearBoids(interaction, boids[i], boids, boids, predators, envWidth, envHeight);   
+            for (auto interaction : {Interaction::CATCH, Interaction::FLED, Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
+                auto neighbors = (interaction == Interaction::FLED || interaction == Interaction::CATCH) ? zoneptr->getNearBoids(interaction, boids[i], boids, predators, predators, envWidth, envHeight) 
+                                                                                                        :zoneptr->getNearBoids(interaction, boids[i], boids, boids, predators, envWidth, envHeight);   
                 if (!neighbors.empty()) {
-                    boids[i]->applyRules(interaction, neighbors);
-                    hasInteraction = true;
-                    if (interaction == Interaction::FLED) {
-                        boids[i]->setSpeed(originalSpeed * speedVar);
-                        boids[i]->setAngVelocity(originalAngVelocity * velocityVar);
+                    if (interaction == Interaction::CATCH) {
+                        vPose boidPose = boids[i]->getPose();
+                        removeThisBoid(boids[i]);
+                        addPredator(boidPose, 300, 2 * M_PI);
+                        break;
+                    } else {
+                        boids[i]->applyRules(interaction, neighbors);
+                        hasInteraction = true;
+                        if (interaction == Interaction::FLED) {
+                            boids[i]->setSpeed(originalSpeed * speedVar);
+                            boids[i]->setAngVelocity(originalAngVelocity * velocityVar);
+                        }
+                        break; // Si une interaction est trouvée, arrêter de vérifier les autres
                     }
-                    break; // Si une interaction est trouvée, arrêter de vérifier les autres
                 }
             }
 
@@ -93,6 +100,15 @@ void Simulation::removeBoid() {
     }
 }
 
+// Méthode pour supprimer un boid précis de la simulation
+void Simulation::removeThisBoid(Boid* boid) {
+    auto it = std::find(boids.begin(), boids.end(), boid);
+    if (it != boids.end()) {
+        boids.erase(it);
+    }
+}
+
+
 // Méthode pour ajouter un predator à la simulation
 void Simulation::addPredator(vPose pose, double maxSpeed, double maxAngVelocity) {
     Boid* newPredator = new Boid(pose, maxSpeed, maxAngVelocity);
@@ -105,6 +121,14 @@ void Simulation::removePredator() {
     if (!predators.empty()) {
         delete predators.back();
         predators.pop_back();
+    }
+}
+
+// Méthode pour supprimer un predator précis de la simulation
+void Simulation::removeThisPredator(Boid* predator) {
+    auto it = std::find(predators.begin(), predators.end(), predator);
+    if (it != predators.end()) {
+        predators.erase(it);
     }
 }
 

@@ -23,10 +23,14 @@ class Simulation {
         void addBoid(vPose pose, double maxSpeed, double maxAngVelocity);
         // Méthode pour supprimer un boid de la simulation
         void removeBoid();
+        // Méthode pour supprimer un boid précis de la simulation
+        void removeThisBoid(Boid* boid);
         // Méthode pour ajouter un predator à la simulation
         void addPredator(vPose pose, double maxSpeed, double maxAngVelocity);
         // Méthode pour supprimer un predator de la simulation
         void removePredator();
+        // Méthode pour supprimer un predator précis de la simulation
+        void removeThisPredator(Boid* predator);
         // Méthode pour initialiser les boids de manière aléatoire
         void initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity);
         // Méthode pour initialiser les predators de manière aléatoire
