@@ -1,43 +1,45 @@
 #include "../include/simulation.hpp"
 #include <random>
 
+// Paramètres
+#define NUM_BOIDS 500       // Nombre de Boids initialisés au début
+#define SPEED 140           // Vitesse des Boids (px/s)
+#define ANG_V (2 * M_PI)    // Vitesse angulaire maximum des Boids (rad/s)
+#define FOV 5               // Angle de vue des Boids (rad)
+// Rayons des règles d'interaction (px)
+#define R_DISTANCING 10
+#define R_ALIGNMENT 40
+#define R_COHESINON 90
+// Poids des règles d'interaction
+#define WEIGHT_DISTANCING 0.05
+#define WEIGHT_ALIGNMENT 0.05
+#define WEIGHT_COHESION 0.0005
+
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 40, 90, 5);
+    // Instanciation d'une zone avec rayons et fov en paramètres
+    zoneptr = new Zone(R_DISTANCING, R_ALIGNMENT, R_COHESINON, FOV);
 }
 
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser des boids avec des positions aléatoires
-    initializeBoidsRandomly(500, 200, 2*M_PI);
+    initializeBoidsRandomly(NUM_BOIDS, SPEED, ANG_V);
 
-    // Lancer la simulation
+    // Boucle principale
     while (true) {
         // Gestion des entrées clavier
-        int key = cv::waitKey(timeStep);
+        int key = cv::waitKey(timeStep); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
 
+        // Parcourir tous les boids
         for (int i = 0; i < boids.size(); i++) {
-            bool hasInteraction = false;
-            for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight);
-                if (!neighbors.empty()) {
-                    boids[i]->applyRules(interaction, neighbors);
-                    hasInteraction = true;
-                    break; // Si une interaction est trouvée, arrêter de vérifier les autres
-                }
-            }
-
-            // Si aucune interaction, appliquer NONE
-            if (!hasInteraction) {
-                boids[i]->applyRules(Interaction::NONE, {});
-            }
-
-            // Mettre à jour la position
+            std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, envWidth, envHeight);
+            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION);
             boids[i]->move(envWidth, envHeight);
         }
         updateDisplay();
@@ -91,7 +93,7 @@ void Simulation::handleKeyPress(int key) {
             std::cout << "Simulation réinitialisée." << std::endl;
             break;
         case '+': // Ajouter un boid
-            initializeBoidsRandomly(1, 200, 2*M_PI);
+            initializeBoidsRandomly(1, SPEED, ANG_V);
             std::cout << "Boid ajouté." << std::endl;
             break;
         case '-': // Supprimer un boid
@@ -137,18 +139,10 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
     cv::Scalar color;
     Interaction currentInteraction = boid->getCurrentInteraction();
     switch (currentInteraction) {
-        case Interaction::DISTANCING:
-            color = cv::Scalar(0, 0, 255); // Rouge
-            break;
-        case Interaction::ALIGNMENT:
-            color = cv::Scalar(0, 255, 0); // Vert
-            break;
-        case Interaction::COHESION:
-            color = cv::Scalar(255, 0, 0); // Bleu
-            break;
-        case Interaction::NONE:
-            color =cv::Scalar(127,127,0); // Bleu-Vert 
-            break;
+        case Interaction::DISTANCING: color = cv::Scalar(0, 0, 255);   break;
+        case Interaction::ALIGNMENT:  color = cv::Scalar(0, 255, 0);   break;
+        case Interaction::COHESION:   color = cv::Scalar(255, 0, 0);   break;
+        case Interaction::NONE:       color = cv::Scalar(127, 127, 0); break;
     }
 
     // Dessiner le boid sous forme de triangle isocèle
