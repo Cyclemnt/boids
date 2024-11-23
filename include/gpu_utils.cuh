@@ -22,15 +22,17 @@ void reallocateIfNecessary(Types::BoidData& boids);
 // kernel
 __global__ void updateBoidsKernel(
     float* positionsX, float* positionsY, float* orientations, Types::Interaction* interactions,
-    int numBoids, float envWidth, float envHeight, float speed, float angVelocity,
-    float halvedFov, float rDistancingSquared, float rAlignmentSquared, float rCohesionSquared, float timeStep
+    const int numBoids, const float envWidth, const float envHeight, const float speed, const float angVelocity, const float timeStep,
+    const float halvedFov, const float rDistancingSquared, const float rAlignmentSquared, const float rCohesionSquared,
+    const float weightDistancing, const float weightAlignment, const float weightCohesion
 );
 
 // Fonction d'encapsulation pour appeler le kernel
 void updateBoidsCUDA(
     float* positionsX, float* positionsY, float* orientations, Types::Interaction* interactions,
-    int numBoids, float envWidth, float envHeight, float speed, float angVelocity,
-    float halvedFov, float rDistancingSquared, float rAlignmentSquared, float rCohesionSquared, float timeStep
+    const int numBoids, const float envWidth, const float envHeight, const float speed, const float angVelocity, const float timeStep,
+    const float halvedFov, const float rDistancingSquared, const float rAlignmentSquared, const float rCohesionSquared,
+    const float weightDistancing, const float weightAlignment, const float weightCohesion
 );
 
 #endif // GPU_UTILS_CUH

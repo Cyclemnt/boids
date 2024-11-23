@@ -1,4 +1,4 @@
-#define TIMESTEP 16
+#define TIMESTEP 32
 #include "../include/simulation.hpp"
 
 int main() {

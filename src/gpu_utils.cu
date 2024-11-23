@@ -1,7 +1,5 @@
 #include "../include/gpu_utils.cuh"
 #include <cuda_runtime.h>
-#include <cstdio>
-#include <iostream>
 
 // Alloue la mémoire GPU pour les données des Boids
 void allocateBoidDataOnGPU(Types::BoidData& boids) {
@@ -54,8 +52,9 @@ void reallocateIfNecessary(Types::BoidData& boids) {
 // kernel
 __global__ void updateBoidsKernel(
     float* positionsX, float* positionsY, float* orientations, Types::Interaction* interactions,
-    int numBoids, float envWidth, float envHeight, float speed, float angVelocity,
-    float halvedFov, float rDistancingSquared, float rAlignmentSquared, float rCohesionSquared, float timeStep
+    const int numBoids, const float envWidth, const float envHeight, const float speed, const float angVelocity, const float timeStep,
+    const float halvedFov, const float rDistancingSquared, const float rAlignmentSquared, const float rCohesionSquared,
+    const float weightDistancing, const float weightAlignment, const float weightCohesion
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= numBoids) return;
@@ -156,8 +155,8 @@ __global__ void updateBoidsKernel(
     
     if (alignCount != 0 || cohesionCount != 0 || distCount != 0) {
         // Combiner les vecteurs
-        float newDirX = 0.05f * distX + 0.05f * alignX + 0.0005f * cohesionX;
-        float newDirY = 0.05f * distY + 0.05f * alignY + 0.0005f * cohesionY;
+        float newDirX = weightDistancing * distX + weightAlignment * alignX + weightCohesion * cohesionX;
+        float newDirY = weightDistancing * distY + weightAlignment * alignY + weightCohesion * cohesionY;
 
         // Calculer la nouvelle orientation
         float newOrientation = atan2f(newDirY, newDirX);
@@ -187,8 +186,9 @@ __global__ void updateBoidsKernel(
 // Fonction d'encapsulation pour appeler le kernel
 void updateBoidsCUDA(
     float* positionsX, float* positionsY, float* orientations, Types::Interaction* interactions,
-    int numBoids, float envWidth, float envHeight, float speed, float angVelocity,
-    float halvedFov, float rDistancingSquared, float rAlignmentSquared, float rCohesionSquared, float timeStep
+    const int numBoids, const float envWidth, const float envHeight, const float speed, const float angVelocity, const float timeStep,
+    const float halvedFov, const float rDistancingSquared, const float rAlignmentSquared, const float rCohesionSquared,
+    const float weightDistancing, const float weightAlignment, const float weightCohesion
 ) {
     // Définir le nombre de threads par bloc et de blocs
     int threadsPerBlock = 256;
@@ -200,8 +200,9 @@ void updateBoidsCUDA(
     // Appeler le kernel
     updateBoidsKernel<<<blocksPerGrid, threadsPerBlock, sharedMemorySize>>>(
         positionsX, positionsY, orientations, interactions,
-        numBoids, envWidth, envHeight, speed, angVelocity,
-        halvedFov, rDistancingSquared, rAlignmentSquared, rCohesionSquared, timeStep
+        numBoids, envWidth, envHeight, speed, angVelocity, timeStep,
+        halvedFov, rDistancingSquared, rAlignmentSquared, rCohesionSquared,
+        weightDistancing, weightAlignment, weightCohesion
     );
 
     // Synchroniser pour s'assurer que le kernel est terminé

@@ -1,19 +1,24 @@
 #include "../include/simulation.hpp"
 #include "../include/gpu_utils.cuh"
 #include "../include/types.hpp"
-#include <cuda_runtime.h>
 #include <omp.h>
 #include <random>
 #include <iostream>
-#include <cstdio>
 
-#define NUM_BOIDS 6000
-#define SPEED 280
+#define NUM_BOIDS 10000
+#define SPEED 140
 #define ANG_V (2 * M_PI)
 #define FOV 5
-#define R_DISTANCING 10
+
+// Rayons des règles d'interaction (px)
+#define R_DISTANCING 12
 #define R_ALIGNMENT 40
 #define R_COHESINON 40
+
+// Poids des règles d'interaction
+#define WEIGHT_DISTANCING 0.05f
+#define WEIGHT_ALIGNMENT 0.05f
+#define WEIGHT_COHESION 0.0005f
 
 #define THREE_PI_OVER_FOUR (M_PI * 3 / 4)
 
@@ -47,12 +52,10 @@ void Simulation::run() {
     while (true)
     {
         // Gestion des entrées clavier
-        int key = cv::waitKey(timeStep);
+        int key = cv::waitKey(1);
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
-
-        int numBoids = boids.positionsX.size();
 
         // Copier les tableaux dans la GPU
         copyBoidDataToGPU(boids);
@@ -60,14 +63,15 @@ void Simulation::run() {
         // Appeler le kernel CUDA
         updateBoidsCUDA(
             boids.d_positionsX, boids.d_positionsY, boids.d_orientations, boids.d_interations,
-            numBoids, envWidth, envHeight, boids.speed, boids.angVelocity,
-            boids.halvedFov, boids.rDistancingSquared, boids.rAlignmentSquared, boids.rCohesionSquared, boids.timeStep
+            boids.positionsX.size(), envWidth, envHeight, boids.speed, boids.angVelocity, boids.timeStep,
+            boids.halvedFov, boids.rDistancingSquared, boids.rAlignmentSquared, boids.rCohesionSquared,
+            WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION
         );
 
         // Récupérer les tableaux dans le CPU
         copyBoidDataToCPU(boids);
 
-        updateDisplay();
+        updateDisplay();        
     }
 // fin boucle
     freeBoidDataOnGPU(boids);
