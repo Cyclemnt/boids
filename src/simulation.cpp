@@ -1,70 +1,80 @@
 #include "../include/simulation.hpp"
+#include "../include/gpu_utils.cuh"
+#include "../include/types.hpp"
+#include <cuda_runtime.h>
 #include <omp.h>
 #include <random>
+#include <iostream>
+#include <cstdio>
+
+#define NUM_BOIDS 6000
+#define SPEED 280
+#define ANG_V (2 * M_PI)
+#define FOV 5
+#define R_DISTANCING 10
+#define R_ALIGNMENT 40
+#define R_COHESINON 40
+
+#define THREE_PI_OVER_FOUR (M_PI * 3 / 4)
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
-    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false) {
+    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), paused(false) {
+
+    boids.speed = SPEED;
+    boids.angVelocity = ANG_V;
+    boids.halvedFov = FOV / 2.0;
+    boids.timeStep = timeStep / 1000.0;
+
+    boids.rDistancingSquared = R_DISTANCING * R_DISTANCING;
+    boids.rAlignmentSquared = R_ALIGNMENT * R_ALIGNMENT;
+    boids.rCohesionSquared = R_COHESINON * R_COHESINON;
+
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(10, 40, 90, 5);
 }
 
 // Lance la Simulation
 void Simulation::run() {
     omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles
     std::cout << "Nombre de threads : " << omp_get_max_threads() << std::endl;
+    
     // Initialiser des boids avec des positions aléatoires
-    initializeBoidsRandomly(600, 400, 2*M_PI);
-
-    // Lancer la simulation
-    while (true) {
+    initializeBoidsRandomly(NUM_BOIDS);
+    
+    // Allouer la mémoire dans la GPU
+    allocateBoidDataOnGPU(boids);
+// début boucle
+    while (true)
+    {
         // Gestion des entrées clavier
         int key = cv::waitKey(timeStep);
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
 
-        #pragma omp parallel for
-        for (int i = 0; i < boids.size(); i++) {
-            bool hasInteraction = false;
-            for (auto interaction : {Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids, envWidth, envHeight);
-                if (!neighbors.empty()) {
-                    boids[i]->applyRules(interaction, neighbors);
-                    hasInteraction = true;
-                    break; // Si une interaction est trouvée, arrêter de vérifier les autres
-                }
-            }
+        int numBoids = boids.positionsX.size();
 
-            // Si aucune interaction, appliquer NONE
-            if (!hasInteraction) {
-                boids[i]->applyRules(Interaction::NONE, {});
-            }
+        // Copier les tableaux dans la GPU
+        copyBoidDataToGPU(boids);
 
-            // Mettre à jour la position
-            boids[i]->move(envWidth, envHeight);
-        }
+        // Appeler le kernel CUDA
+        updateBoidsCUDA(
+            boids.d_positionsX, boids.d_positionsY, boids.d_orientations, boids.d_interations,
+            numBoids, envWidth, envHeight, boids.speed, boids.angVelocity,
+            boids.halvedFov, boids.rDistancingSquared, boids.rAlignmentSquared, boids.rCohesionSquared, boids.timeStep
+        );
+
+        // Récupérer les tableaux dans le CPU
+        copyBoidDataToCPU(boids);
+
         updateDisplay();
     }
-}
-
-// Méthode pour ajouter un boid à la simulation
-void Simulation::addBoid(vPose pose, double maxSpeed, double maxAngVelocity) {
-    Boid* newBoid = new Boid(pose, maxSpeed, maxAngVelocity);
-    newBoid->setTimeStep(timeStep);
-    boids.push_back(newBoid);
-}
-
-// Méthode pour supprimer un boid de la simulation
-void Simulation::removeBoid() {
-    if (!boids.empty()) {
-        delete boids.back();
-        boids.pop_back();
-    }
+// fin boucle
+    freeBoidDataOnGPU(boids);
 }
 
 // Méthode pour initialiser les boids de manière aléatoire
-void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity) {
+void Simulation::initializeBoidsRandomly(int numBoids) {
     // Création d'un moteur aléatoire avec une graine unique
     std::random_device rd;  // Génére une graine à partir de l'environnement
     std::mt19937 gen(rd()); // Mersenne Twister : générateur de nombres pseudo-aléatoires
@@ -72,15 +82,40 @@ void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double m
     std::uniform_real_distribution<> yDist(0, envHeight);
     std::uniform_real_distribution<> thetaDist(0, 2 * M_PI);
     std::uniform_real_distribution<> offsetDist(-rand(), rand());
-    double offsetTheta = Types::customMod(offsetDist(gen), 2*M_PI);
+    float offsetTheta = Types::customMod(offsetDist(gen), 2*M_PI);
     
     for (int i = 0; i < numBoids; ++i) {
-        vPose newPose;
-        newPose.x = xDist(gen);  // Position x aléatoire
-        newPose.y = yDist(gen);  // Position y aléatoire
-        newPose.theta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
-        addBoid(newPose, maxSpeed, maxAngVelocity);
+        float newX = xDist(gen);  // Position x aléatoire
+        float newY = yDist(gen);  // Position y aléatoire
+        float newTheta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
+        addBoid(newX, newY, newTheta);
     }
+}
+
+// Méthode pour ajouter un boid à la simulation
+void Simulation::addBoid(float x, float y, float theta) {
+    // Ajouter au CPU
+    boids.positionsX.push_back(x);
+    boids.positionsY.push_back(y);
+    boids.orientations.push_back(theta);
+    boids.interactions.push_back(Types::Interaction::NONE);
+}
+
+// Méthode pour supprimer un boid de la simulation
+void Simulation::removeBoid(int id) {
+    boids.positionsX.erase(boids.positionsX.begin() + id);
+    boids.positionsY.erase(boids.positionsY.begin() + id);
+    boids.orientations.erase(boids.orientations.begin() + id);
+    boids.interactions.erase(boids.interactions.begin() + id);
+}
+
+// Réinitialiser la simulation
+void Simulation::reset() {
+    boids.positionsX.clear();
+    boids.positionsY.clear();
+    boids.orientations.clear();
+    boids.interactions.clear();
+    freeBoidDataOnGPU(boids);
 }
 
 // Méthode pour gérer les touches
@@ -95,40 +130,31 @@ void Simulation::handleKeyPress(int key) {
             std::cout << "Simulation réinitialisée." << std::endl;
             break;
         case '+': // Ajouter un boid
-            initializeBoidsRandomly(1, 200, 2*M_PI);
+            initializeBoidsRandomly(1);
+            reallocateIfNecessary(boids);
             std::cout << "Boid ajouté." << std::endl;
             break;
         case '-': // Supprimer un boid
-            removeBoid();
+            removeBoid(boids.positionsX.size());
+            reallocateIfNecessary(boids);
             std::cout << "Boid supprimé." << std::endl;
             break;
         case 27: // Échapper (ESC) pour quitter
+            freeBoidDataOnGPU(boids);
             std::cout << "Simulation terminée." << std::endl;
             exit(0);
     }
 }
 
-// Réinitialiser la simulation
-void Simulation::reset() {
-    for (Boid* boid : boids) {
-        delete boid;
-    }
-    boids.clear();
-}
-
-// Méthode pour basculer l'état de pause
-void Simulation::togglePause() {
-    paused = !paused;
-}
-
 // Met à jour tous les boids et affiche la simulation
-void Simulation::updateDisplay() {
+void Simulation::updateDisplay() const {
     // Effacer l'image précédente
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
     
     // Mettre à jour chaque boid
-    for (Boid* boid : boids) {
-        displayBoid(image, boid); // Afficher le boid dans l'image
+    #pragma omp parallel for
+    for (int id = 0; id < boids.positionsX.size(); ++id) {
+        displayBoid(image, id); // Afficher le boid dans l'image
     }
     
     // Afficher l'image dans une fenêtre OpenCV
@@ -138,47 +164,38 @@ void Simulation::updateDisplay() {
 }
 
 // Affiche chaque boid avec une couleur selon son interaction
-void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
+void Simulation::displayBoid(cv::Mat& image, int id) const {
     // Déterminer la couleur en fonction de l'interaction
     cv::Scalar color;
-    Interaction currentInteraction = boid->getCurrentInteraction();
+    Types::Interaction currentInteraction = boids.interactions[id];
     switch (currentInteraction) {
-        case Interaction::DISTANCING:
-            color = cv::Scalar(0, 0, 255); // Rouge
-            break;
-        case Interaction::ALIGNMENT:
-            color = cv::Scalar(0, 255, 0); // Vert
-            break;
-        case Interaction::COHESION:
-            color = cv::Scalar(255, 0, 0); // Bleu
-            break;
-        case Interaction::NONE:
-            color =cv::Scalar(127, 127, 0); // Bleu-Vert 
-            break;
+        case Types::Interaction::DISTANCING: color = cv::Scalar(0, 0, 255);   break;
+        case Types::Interaction::ALIGNMENT:  color = cv::Scalar(0, 255, 0);   break;
+        case Types::Interaction::COHESION:   color = cv::Scalar(255, 0, 0);   break;
+        case Types::Interaction::NONE:       color = cv::Scalar(127, 127, 0); break;
     }
 
     // Dessiner le boid sous forme de triangle isocèle
-    vPose pose = boid->getPose();
-    double x = pose.x;
-    double y = pose.y;
-    double size = 5.0;         // Taille globale du triangle
-    double angle = pose.theta; // Orientation du boid en radians
-
+    const int size = 5;  // Taille globale du triangle
+    float x = boids.positionsX[id];
+    float y = boids.positionsY[id];
+    float theta = boids.orientations[id];
+    
     // Calcul et dessin en une "pseudo-ligne"
-    cv::fillPoly(
-        image,
-        {std::vector<cv::Point>{
-            cv::Point(x + size * cos(angle), y + size * sin(angle)),                       // Sommet avant (pointe)
-            cv::Point(x + size * cos(angle + CV_PI * 3 / 4), y + size * sin(angle + CV_PI * 3 / 4)), // Coin gauche
-            cv::Point(x + size * cos(angle - CV_PI * 3 / 4), y + size * sin(angle - CV_PI * 3 / 4))  // Coin droit
-        }},
-        color
-    );
+    cv::Point points[3] = {
+        cv::Point(x + size * cos(theta), y + size * sin(theta)),
+        cv::Point(x + size * cos(theta + THREE_PI_OVER_FOUR), y + size * sin(theta + THREE_PI_OVER_FOUR)),
+        cv::Point(x + size * cos(theta - THREE_PI_OVER_FOUR), y + size * sin(theta - THREE_PI_OVER_FOUR))
+    };
+    cv::fillPoly(image, std::vector<cv::Point>{points, points + 3}, color);
 }
 
-// Vérifie si la simulation est en pause
-bool Simulation::isPaused() const {
-    return paused;
+
+
+
+// Méthode pour basculer l'état de pause
+void Simulation::togglePause() {
+    paused = !paused;
 }
 
 Simulation::~Simulation() {

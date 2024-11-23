@@ -1,15 +1,14 @@
 #ifndef SIMULATION_HPP
 #define SIMULATION_HPP
 
-#include "boid.hpp"
-#include "zone.hpp"
+#include "types.hpp"
 #include <opencv2/opencv.hpp>
 
 class Simulation {
     private : 
-        int envWidth, envHeight, timeStep;
-        std::vector<Boid*> boids;
-        Zone* zoneptr;
+        Types::BoidData boids;
+        const int envWidth, envHeight;
+        const float timeStep;
         bool paused;
     public :
         // Constructeur
@@ -17,24 +16,23 @@ class Simulation {
 
         // Lance la simulation
         void run();
-        // Méthode pour ajouter un boid à la simulation
-        void addBoid(vPose pose, double maxSpeed, double maxAngVelocity);
-        // Méthode pour supprimer un boid de la simulation
-        void removeBoid();
         // Méthode pour initialiser les boids de manière aléatoire
-        void initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity);
-        // Méthode pour gérer les touches
-        void handleKeyPress(int key);
+        void initializeBoidsRandomly(int numBoids);
+        // Méthode pour ajouter un boid à la simulation
+        void addBoid(float x, float y, float theta);
+        // Méthode pour supprimer un boid de la simulation
+        void removeBoid(int id);
         // Réinitialiser la simulation
         void reset();
+
+        // Méthode pour gérer les touches
+        void handleKeyPress(int key);
+        // Met à jour tous les boids et affiche la simulation
+        void updateDisplay() const;
+        // Affiche chaque boid avec une couleur selon son interaction
+        void displayBoid(cv::Mat& image, int id) const;
         // Méthode pour gérer la pause de la simulation
         void togglePause();
-        // Met à jour tous les boids et affiche la simulation
-        void updateDisplay();
-        // Affiche chaque boid avec une couleur selon son interaction
-        void displayBoid(cv::Mat& image, const Boid* boid);
-        // Méthode pour obtenir l'état de la simulation
-        bool isPaused() const ;
 
         ~Simulation();
 };
