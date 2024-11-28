@@ -4,31 +4,31 @@
 #include <omp.h>
 #include <random>
 #include <iostream>
+#include <chrono>
 
-#define NUM_BOIDS 10000
-#define SPEED 140
-#define ANG_V (2 * M_PI)
-#define FOV 5
-
+// Paramètres
+#define NUM_BOIDS 65536      // Nombre de Boids initialisés au début
+#define SPEED 35             // Vitesse des Boids (px/s)
+#define ANG_V (2 * M_PIf)    // Vitesse angulaire maximum des Boids (rad/s)
+#define FOV 5                // Angle de vue des Boids (rad)
 // Rayons des règles d'interaction (px)
-#define R_DISTANCING 12
-#define R_ALIGNMENT 40
-#define R_COHESINON 40
-
+#define R_DISTANCING 2
+#define R_ALIGNMENT 5
+#define R_COHESINON 8
 // Poids des règles d'interaction
 #define WEIGHT_DISTANCING 0.05f
 #define WEIGHT_ALIGNMENT 0.05f
 #define WEIGHT_COHESION 0.0005f
 
-#define THREE_PI_OVER_FOUR (M_PI * 3 / 4)
+#define THREE_PI_OVER_FOUR (M_PIf * 0.75f)
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), paused(false) {
 
     boids.speed = SPEED;
     boids.angVelocity = ANG_V;
-    boids.halvedFov = FOV / 2.0;
-    boids.timeStep = timeStep / 1000.0;
+    boids.halvedFov = FOV / 2.0f;
+    boids.timeStep = timeStep / 1000.0f;
 
     boids.rDistancingSquared = R_DISTANCING * R_DISTANCING;
     boids.rAlignmentSquared = R_ALIGNMENT * R_ALIGNMENT;
@@ -41,8 +41,8 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 // Lance la Simulation
 void Simulation::run() {
     omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles
-    std::cout << "Nombre de threads : " << omp_get_max_threads() << std::endl;
-    
+    std::cout << "Nombre de threads (CPU) pour l'affichage : " << omp_get_max_threads() << std::endl;
+    std::vector<float> t; float total = 0.0f; long int it = 0;
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(NUM_BOIDS);
     
@@ -53,13 +53,22 @@ void Simulation::run() {
     {
         // Gestion des entrées clavier
         int key = cv::waitKey(1);
-        if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
+        if (key != -1) {
+
+        for (int i = 0; i < t.size(); i++) {
+            total += t[i];
+        }
+        std::cout << "avg " << total / it << std::endl;
+        handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
+
+        }
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
 
         // Copier les tableaux dans la GPU
         copyBoidDataToGPU(boids);
 
+        auto start = std::chrono::high_resolution_clock::now(); // démarrage du chronomètre
         // Appeler le kernel CUDA
         updateBoidsCUDA(
             boids.d_positionsX, boids.d_positionsY, boids.d_orientations, boids.d_interations,
@@ -67,11 +76,15 @@ void Simulation::run() {
             boids.halvedFov, boids.rDistancingSquared, boids.rAlignmentSquared, boids.rCohesionSquared,
             WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION
         );
+        auto end = std::chrono::high_resolution_clock::now(); // fin du chronomètre
+        std::chrono::duration<float, std::milli> duration = end - start; // calcul de la durée en millisecondes
+        t.push_back(duration.count()); it++;
+        std::cout << it << " " << duration.count() << " ms" << std::endl; // affichage du temps en millisecondes
 
         // Récupérer les tableaux dans le CPU
         copyBoidDataToCPU(boids);
 
-        updateDisplay();        
+       updateDisplay();
     }
 // fin boucle
     freeBoidDataOnGPU(boids);
@@ -84,9 +97,9 @@ void Simulation::initializeBoidsRandomly(int numBoids) {
     std::mt19937 gen(rd()); // Mersenne Twister : générateur de nombres pseudo-aléatoires
     std::uniform_real_distribution<> xDist(0, envWidth);
     std::uniform_real_distribution<> yDist(0, envHeight);
-    std::uniform_real_distribution<> thetaDist(0, 2 * M_PI);
-    std::uniform_real_distribution<> offsetDist(-rand(), rand());
-    float offsetTheta = Types::customMod(offsetDist(gen), 2*M_PI);
+    std::uniform_real_distribution<> thetaDist(0, 2 * M_PIf);
+    std::uniform_real_distribution<> offsetDist(0, rand());
+    float offsetTheta = Types::customMod(offsetDist(gen), 2*M_PIf);
     
     for (int i = 0; i < numBoids; ++i) {
         float newX = xDist(gen);  // Position x aléatoire
@@ -180,17 +193,17 @@ void Simulation::displayBoid(cv::Mat& image, int id) const {
     }
 
     // Dessiner le boid sous forme de triangle isocèle
-    const int size = 5;  // Taille globale du triangle
     float x = boids.positionsX[id];
     float y = boids.positionsY[id];
     float theta = boids.orientations[id];
     
     // Calcul et dessin en une "pseudo-ligne"
     cv::Point points[3] = {
-        cv::Point(x + size * cos(theta), y + size * sin(theta)),
-        cv::Point(x + size * cos(theta + THREE_PI_OVER_FOUR), y + size * sin(theta + THREE_PI_OVER_FOUR)),
-        cv::Point(x + size * cos(theta - THREE_PI_OVER_FOUR), y + size * sin(theta - THREE_PI_OVER_FOUR))
+        cv::Point(x + cos(theta), y + 0.5f * sin(theta)),
+        cv::Point(x + 0.5f * cos(theta + THREE_PI_OVER_FOUR), y + 0.5f * sin(theta + THREE_PI_OVER_FOUR)),
+        cv::Point(x + 0.5f * cos(theta - THREE_PI_OVER_FOUR), y + 0.5f * sin(theta - THREE_PI_OVER_FOUR))
     };
+    //cv::circle(image, cv::Point(x, y), 1, color, cv::FILLED);
     cv::fillPoly(image, std::vector<cv::Point>{points, points + 3}, color);
 }
 
