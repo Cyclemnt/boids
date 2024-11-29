@@ -14,9 +14,10 @@ private:
     vPose pose;
     double speed, angVelocity;
     Interaction currentInteraction;
+
 public:
-    //Constructeur
-    Boid(vPose pose_, double speed_, double angVelocity_);    
+    Boid(vPose pose_, double speed_, double angVelocity_);
+    
     // Setters
     void setTimeStep(int timeStep_);
     //Méthode pour mettre à jour la position de la souris 
@@ -24,10 +25,10 @@ public:
     // Méthode pour faire avancer le boid
     void move(int envWidth, int envHeight);
     // Méthode pour modifier l'orientation du boid en fonction des voisins
-    void applyRules(Interaction interaction, std::vector<Boid*> neighbors);
+    void applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDistancing, double weightAlignment, double weightCohesion,double weightFolllow, int envWidth, int envHeight);
+
     // Getters
     vPose getPose() const;
-    
     Interaction getCurrentInteraction() const;
     
     ~Boid();

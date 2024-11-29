@@ -1,16 +1,32 @@
 #include "../include/simulation.hpp"
 #include <random>
 
+// Paramètres
+#define NUM_BOIDS 500       // Nombre de Boids initialisés au début
+#define SPEED 140           // Vitesse des Boids (px/s)
+#define ANG_V (2 * M_PI)    // Vitesse angulaire maximum des Boids (rad/s)
+#define FOV 5               // Angle de vue des Boids (rad)
+// Rayons des règles d'interaction (px)
+#define R_DISTANCING 10
+#define R_ALIGNMENT 40
+#define R_COHESINON 90
+#define R_FOLLOW 150
+// Poids des règles d'interaction
+#define WEIGHT_DISTANCING 0.05
+#define WEIGHT_ALIGNMENT 0.05
+#define WEIGHT_COHESION 0.0005
+#define  WEIGHT_FOLLOW 0.1
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
-    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false), mouseON(false){
+    : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), zoneptr(nullptr), paused(false),mouseON(false) {
     // Création d'une image de la taille de la simulation
-    cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);  
-    zoneptr = new Zone(10, 40, 90, 300, M_PI,2*M_PI); // Instanciation de la taille des rayons d'interaction des boids ainsi que leur FOV
+    cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
     vPose mousePose = {INFINITY,INFINITY,0};  //Instantiation de la position de la souris à 0,0,0
     mouse = new Boid(mousePose, 0, 0); // Vitesse et rotation inutiles pour la souris
-    lastMouseUpdateTime = std::chrono::steady_clock::now();
+    // Instanciation d'une zone avec rayons et fov en paramètres
+    zoneptr = new Zone(R_DISTANCING, R_ALIGNMENT, R_COHESINON,R_FOLLOW, FOV);
 }
+
 
 // Fonction pour agir en fonction des évènements souris 
 void onMouse(int event, int x, int y, int flags, void* userdata) {
@@ -44,22 +60,19 @@ void onMouse(int event, int x, int y, int flags, void* userdata) {
             if (flags==cv::EVENT_FLAG_CTRLKEY){
                 simulation->updateMousePosition(x,y);  // Mettre à jour la position de la souris 
             }
-            break;
-
-            
+            break;    
     }
 }
 
 // Lance la Simulation
 void Simulation::run() {
     // Initialiser des boids avec des positions aléatoires
-    initializeBoidsRandomly(400, 200, 2*M_PI);
+    initializeBoidsRandomly(NUM_BOIDS, SPEED, ANG_V);
     cv::namedWindow("Simulation de Boids", cv::WINDOW_NORMAL);
-    
-    // Lancer la simulation
+    // Boucle principale
     while (true) {
         // Gestion des entrées clavier
-        int key = cv::waitKey(timeStep);
+        int key = cv::waitKey(timeStep); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
@@ -73,29 +86,13 @@ void Simulation::run() {
             // Désactive le callback souris
             cv::setMouseCallback("Simulation de Boids", nullptr, nullptr);
         }
+        // Parcourir tous les boids
         for (int i = 0; i < boids.size(); i++) {
-            bool hasInteraction = false;
-            for (auto interaction : {Interaction::DISTANCING, Interaction::FOLLOW, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                if (interaction==Interaction::FOLLOW){
-                    if (mouseON) continue;  // Si évènements souris désactivé ne pas suivre la souris
-                }
-                auto neighbors = zoneptr->getNearBoids(interaction, boids[i], boids,mouse, envWidth, envHeight);
-                if (!neighbors.empty()) {
-                    boids[i]->applyRules(interaction, neighbors);
-                    hasInteraction = true;
-                    break; // Si une interaction est trouvée, arrêter de vérifier les autres
-                }
-            }
-
-            // Si aucune interaction, appliquer NONE
-            if (!hasInteraction) {
-                boids[i]->applyRules(Interaction::NONE, {});
-            }
-
-            // Mettre à jour la position
+            std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], mouse, boids, envWidth, envHeight,mouseON);
+            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION, WEIGHT_FOLLOW,envWidth, envHeight);
             boids[i]->move(envWidth, envHeight);
         }
-        updateDisplay(); // Mettre à jour l'affichage
+        updateDisplay();
     }
 }
 
@@ -103,12 +100,19 @@ void Simulation::run() {
 void Simulation::updateMousePosition(int x, int y){
     mouse->moveMouse(x,y);
 }
-
 // Méthode pour ajouter un boid à la simulation
 void Simulation::addBoid(vPose pose, double maxSpeed, double maxAngVelocity) {
     Boid* newBoid = new Boid(pose, maxSpeed, maxAngVelocity);
     newBoid->setTimeStep(timeStep);
     boids.push_back(newBoid);
+}
+
+// Méthode pour supprimer un boid de la simulation
+void Simulation::removeBoid() {
+    if (!boids.empty()) {
+        delete boids.back();
+        boids.pop_back();
+    }
 }
 
 // Méthode pour supprimer un boid de la simulation
@@ -163,12 +167,20 @@ void Simulation::handleKeyPress(int key) {
             reset();
             std::cout << "Simulation réinitialisée." << std::endl;
             break;
-        case 27: // Échapper (ESC) pour quitter
-            std::cout << "Simulation terminée." << std::endl;
-            exit(0);
+        case '+': // Ajouter un boid
+            initializeBoidsRandomly(1, SPEED, ANG_V);
+            std::cout << "Boid ajouté." << std::endl;
+            break;
+        case '-': // Supprimer un boid
+            removeBoid();
+            std::cout << "Boid supprimé." << std::endl;
+            break;
         case 'm' : // Activer ou désactiver le suivi de la souris
             toggleMouse();
             break;
+        case 27: // Échapper (ESC) pour quitter
+            std::cout << "Simulation terminée." << std::endl;
+            exit(0);
     }
 }
 
@@ -189,6 +201,7 @@ void Simulation::togglePause() {
 void Simulation::toggleMouse() {
     mouseON = !mouseON;
 }
+
 // Met à jour tous les boids et affiche la simulation
 void Simulation::updateDisplay() {
     // Effacer l'image précédente
@@ -200,8 +213,6 @@ void Simulation::updateDisplay() {
     }
     
     // Afficher l'image dans une fenêtre OpenCV
-    cv::namedWindow("Simulation de Boids", cv::WINDOW_NORMAL);
-    //cv::setWindowProperty("Simulation de Boids", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
     cv::imshow("Simulation de Boids", image);
 }
 
@@ -211,21 +222,11 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
     cv::Scalar color;
     Interaction currentInteraction = boid->getCurrentInteraction();
     switch (currentInteraction) {
-        case Interaction::DISTANCING:
-            color = cv::Scalar(0, 0, 255); // Rouge
-            break;
-        case Interaction::ALIGNMENT:
-            color = cv::Scalar(0, 255, 0); // Vert
-            break;
-        case Interaction::COHESION:
-            color = cv::Scalar(255, 0, 0); // Bleu
-            break;
-        case Interaction::NONE:
-            color =cv::Scalar(127,127,0); // Bleu-Vert 
-            break;
-        case Interaction::FOLLOW:
-            color =cv::Scalar(127,0,127); // Bleu-Vert 
-            break;
+        case Interaction::DISTANCING: color = cv::Scalar(0, 0, 255);   break;
+        case Interaction::ALIGNMENT:  color = cv::Scalar(0, 255, 0);   break;
+        case Interaction::COHESION:   color = cv::Scalar(255, 0, 0);   break;
+        case Interaction::FOLLOW:       color = cv::Scalar(127, 0,127); break;
+        case Interaction::NONE:       color = cv::Scalar(127, 127, 0); break;
     }
 
     // Dessiner le boid sous forme de triangle isocèle

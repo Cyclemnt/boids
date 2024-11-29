@@ -1,8 +1,8 @@
-#define TIMESTEP 16
+#define TIMESTEP 32
 #include "../include/simulation.hpp"
 
 int main() {
-    Simulation sim(1900, 1000, TIMESTEP); //Définition de la taille de la fenêtre de travail 
+    Simulation sim(1900, 1000, TIMESTEP);
 
     sim.run();
     

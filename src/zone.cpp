@@ -1,81 +1,65 @@
 #include "../include/zone.hpp"
+#include "../include/types.hpp"
 #include <cmath>
 
-Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rFollow_, double fov_, double instinct_)
-    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_),rFollow(rFollow_), fov(fov_), instinct(instinct_) {}
+Zone::Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rFollow_, double fov_)
+    : rDistancing(rDistancing_), rAlignment(rAlignment_), rCohesion(rCohesion_),rFollow(rFollow_), fov(fov_) {}
 
 // Méthode pour obtenir tous les boids dans un certain rayon autour du boid
-std::vector<Boid*> Zone::getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids,Boid* mouse, int envWidth, int envHeight) {
-    std::vector<Boid*> neighbors;
-    double radius = 0;
-    
-    // Définir le rayon en fonction de l'interaction
-    switch (interaction) {
-        case Interaction::DISTANCING:
-            radius = rDistancing;
-            break;
-        case Interaction::ALIGNMENT:
-            radius = rAlignment;
-            break;
-        case Interaction::COHESION:
-            radius = rCohesion;
-            break;
-        case Interaction::NONE:
-            return {};
-        case Interaction::FOLLOW:
-            radius = rFollow;
-            break;
-    }
+std::vector<std::vector<Boid*>> Zone::getNearBoids(Boid* boid,Boid* mouse, std::vector<Boid*> boids, int envWidth, int envHeight,bool mouseON) {
+    // Initialiser les tableaux de sortie
+    std::vector<Boid*> distancingNeighbors = {};
+    std::vector<Boid*> alignmentNeighbors = {};
+    std::vector<Boid*> cohesionNeighbors = {};
+    std::vector<Boid*> followNeighbors = {};
+    vPose boidPose = boid->getPose();
 
-    // Instruction différente pour le suivi car les boids suivent sans prendre en compte leur FOV
-    if (interaction==Interaction::FOLLOW){
-        // Calculer la distance en x en tenant compte de l'environnement torique
-        double dx= std::min(std::fabs(boid->getPose().x -mouse->getPose().x), envWidth - std::fabs(boid->getPose().x - mouse->getPose().x));
-        // Calculer la distance en y en tenant compte de l'environnement torique
-        double dy = std::min(std::fabs(boid->getPose().y - mouse->getPose().y), envHeight - std::fabs(boid->getPose().y - mouse->getPose().y));
-
-        // Calculer la distance euclidienne avec les distances minimales en x et y
-        double distance = sqrt((dx * dx) + (dy * dy));
-        if (distance < radius) {
-        neighbors.push_back(mouse);
-        
-        }
-        return neighbors;
-    }
-    // Parcourir chaque boid pour calculer la distance torique pour les autres interactions
+    // Parcourir chaque boid pour calculer la distance torique
     for (int i = 0; i < boids.size(); i++) {
-        if (boid->getPose() != boids[i]->getPose()) {
-            // Calculer la distance en x en tenant compte de l'environnement torique
-            double dx = std::min(std::fabs(boid->getPose().x - boids[i]->getPose().x), envWidth - std::fabs(boid->getPose().x - boids[i]->getPose().x));
+        if (boid == boids[i]) continue; // Ne pas prendre en compte le boid même
+
+        vPose neighborPose = boids[i]->getPose();
+
+        // Calculer la distance
+        double dx = neighborPose.x - boidPose.x;
+        double dy = neighborPose.y - boidPose.y;
+
+        // Calculer la distance torique
+        if (fabs(dx) > (0.5 * envWidth)) dx -= copysign(envWidth, dx);
+        if (fabs(dy) > (0.5 * envHeight)) dy -= copysign(envHeight, dy);
+
+        double distance = sqrt((dx * dx) + (dy * dy));
+
+
+        // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe x
+        double angleToNeighbor = atan2(dy, dx);
+        // Calculer la différence angulaire par rapport à l'orientation du boid
+        double angleDifference = Types::customMod(angleToNeighbor - boidPose.theta + M_PI, 2 * M_PI) - M_PI;
+        bool isWithinFOV = (fabs(angleDifference) <= (fov / 2.0));
+
+        if (!isWithinFOV) continue; // Ne pas prendre en compte les boids hors du fov
+
+        // Ajouter le boid à la liste des voisins s'il est dans le rayon
+        if (distance < rDistancing) {
+            distancingNeighbors.push_back(boids[i]);
+        }
+        if (distance < rAlignment) {
+            alignmentNeighbors.push_back(boids[i]);
+        }
+        if (distance < rCohesion) {
+            cohesionNeighbors.push_back(boids[i]);
+        }
+        if (!mouseON){
+            dx= std::min(std::fabs(boid->getPose().x -mouse->getPose().x), envWidth - std::fabs(boid->getPose().x - mouse->getPose().x));
             // Calculer la distance en y en tenant compte de l'environnement torique
-            double dy = std::min(std::fabs(boid->getPose().y - boids[i]->getPose().y), envHeight - std::fabs(boid->getPose().y - boids[i]->getPose().y));
-
-            // Calculer la distance euclidienne avec les distances minimales en x et y
-            double distance = sqrt((dx * dx) + (dy * dy));
-
-            // Ajouter le boid à la liste des voisins s'il est dans le rayon
-            if (distance < radius && angleWithinFOV(boid->getPose(), boids[i]->getPose())) {
-                neighbors.push_back(boids[i]);
+            dy = std::min(std::fabs(boid->getPose().y - mouse->getPose().y), envHeight - std::fabs(boid->getPose().y - mouse->getPose().y));   
+            distance = sqrt((dx * dx) + (dy * dy));
+            if (distance < rFollow) {   
+                followNeighbors.push_back(mouse);
             }
         }
     }
-    return neighbors;
-}
-
-// Méthode pour vérifier si un boid voisin est dans le fov du boid
-bool Zone::angleWithinFOV(const vPose& boidPose, const vPose& neighborPose){
-    // Calculer le vecteur directionnel du boid vers le voisin
-    double dx = neighborPose.x - boidPose.x;
-    double dy = neighborPose.y - boidPose.y;
-
-    // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe X
-    double angleToNeighbor = atan2(dy, dx);
-
-    // Calculer la différence angulaire par rapport à l'orientation du boid
-    double angleDifference = Types::customMod(angleToNeighbor - boidPose.theta + M_PI, 2 * M_PI) - M_PI;
-
-    // Vérifier si la différence angulaire est dans les limites du FOV
-    return std::fabs(angleDifference) <= (fov / 2);
+    return {distancingNeighbors, alignmentNeighbors, cohesionNeighbors,followNeighbors};
 }
 
 Zone::~Zone() {

@@ -2,22 +2,17 @@
 #define ZONE_HPP
 
 #include "boid.hpp"
-#include "types.hpp"
-
-using Types::Interaction;
 
 class Zone
 {
 private : 
-    double rDistancing, rAlignment, rCohesion,rFollow, instinct, fov;
+    double rDistancing, rAlignment, rCohesion,rFollow, fov;
 
 public : 
-    //Constructeur
-    Zone(double rDistancing_, double rAlignment_, double rCohesion_,double rFollow_, double fov_, double instinct);
+    Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rFollow_, double fov_);
+
     // Méthode pour obtenir tous les boids dans un certain rayon autour du boid
-    std::vector<Boid*> getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, Boid* mouse, int envWidth, int envHeight);
-    // Méthode pour vérifier si un boid voisin est dans le fov du boid
-    bool angleWithinFOV(const vPose& boidPose, const vPose& neighborPose);
+    std::vector<std::vector<Boid*>> getNearBoids(Boid* boid, Boid* mouse, std::vector<Boid*> boids, int envWidth, int envHeight,bool mouseON);
 
     ~Zone();
 };
