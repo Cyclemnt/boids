@@ -44,7 +44,7 @@ void Boid::move(int envWidth, int envHeight) {
 }
 
 // Méthode pour modifier l'orientation du boid en fonction des voisins
-void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch, int envWidth, int envHeight) {
+void Boid::applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch, int envWidth, int envHeight) {
 
     // NONE par défaut
     currentInteraction = Interaction::NONE;
@@ -120,7 +120,6 @@ void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, dou
         currentInteraction = Interaction::FLED;
     }
     // CATCH
-    double alignX = 0, alignY = 0;
     if (!neighbors[5].empty()) {
         currentInteraction = Interaction::CATCH;
     }

@@ -3,50 +3,51 @@
 
 // Paramètres
     //boids
-    #define NUM_BOIDS 500         // Nombre de Boids initialisés au début
+    #define NUM_BOIDS 800         // Nombre de Boids initialisés au début
     #define SPEED_B 140           // Vitesse des Boids (px/s)
     #define ANG_V_B (2 * M_PI)    // Vitesse angulaire maximum des Boids (rad/s)
     #define FOV_B 5               // Angle de vue des Boids (rad)
-    #define INSTINCT_B            // Angle de déctection des prédateurs
+    #define INSTINCT_B 6          // Angle de déctection des prédateurs
+    #define LIFE_B 0              // temps de vie d'un boid ( inutilisé )
     //predators
-    #define NUM_PREDATORS 500      // Nombre de predators initialisés au début
-    #define SPEED_P 140           // Vitesse des predators (px/s)
+    #define NUM_PREDATORS 1      // Nombre de predators initialisés au début
+    #define SPEED_P 300           // Vitesse des predators (px/s)
     #define ANG_V_P (2 * M_PI)    // Vitesse angulaire maximum des predators (rad/s)
     #define FOV_P 5               // Angle de vue des predators (rad)
-    #define INSTINCT_P            // Angle de déctection des predators
-    #define LIFE_P                // temps de vie d'un predator
+    #define INSTINCT_P 5          // Angle de déctection des predators
+    #define LIFE_P 200              // temps de vie d'un predator
 // Rayons des règles d'interaction (px)
     //boids 
     #define R_DISTANCING_B 10
     #define R_ALIGNMENT_B 40
     #define R_COHESINON_B 90
-    #define R_FLED_B
-    #define R_PREDATION_B
-    #define R_CATCH_B
+    #define R_FLED_B 60
+    #define R_PREDATION_B 0
+    #define R_CATCH_B 2
     //predators
-    #define R_DISTANCING_P 10
-    #define R_ALIGNMENT_P 40
+    #define R_DISTANCING_P 0
+    #define R_ALIGNMENT_P 0
     #define R_COHESINON_P 90
-    #define R_FLED_P
-    #define R_PREDATION_P
-    #define R_CATCH_P
+    #define R_FLED_P 10
+    #define R_PREDATION_P 40
+    #define R_CATCH_P 0
 // Poids des règles d'interaction
     //boids
     #define WEIGHT_DISTANCING_B 0.05
-    #define WEIGHT_ALIGNMENT_B 0.05
+    #define WEIGHT_ALIGNMENT_B 0.005
     #define WEIGHT_COHESION_B 0.0005
-    #define WEIGHT_FLED_B
-    #define WEIGHT_PREDATION_B
-    #define WEIGHT_CATCH_B
-    #define BOOST_SPEED
-    #define BOOST_ANGV
+    #define WEIGHT_FLED_B 0.5
+    #define WEIGHT_PREDATION_B 0
+    #define WEIGHT_CATCH_B 0
+    #define BOOST_SPEED 3
+    #define BOOST_ANGV 3
     //predators
-    #define WEIGHT_DISTANCING_P 0.05
-    #define WEIGHT_ALIGNMENT_P 0.05
-    #define WEIGHT_COHESION_P 0.0005
-    #define WEIGHT_FLED_P
-    #define WEIGHT_PREDATION_P
-    #define WEIGHT_CATCH_P
+    #define WEIGHT_DISTANCING_P 0
+    #define WEIGHT_ALIGNMENT_P 0
+    #define WEIGHT_COHESION_P 0.005
+    #define WEIGHT_FLED_P 0.05
+    #define WEIGHT_PREDATION_P 0.07
+    #define WEIGHT_CATCH_P 0
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), predators({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
@@ -72,32 +73,32 @@ void Simulation::run() {
         // Parcourir tous les boids
         for (int i = 0; i < boids.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, predators, envWidth, envHeight);
-            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING_B, WEIGHT_ALIGNMENT_B, WEIGHT_COHESION_B, WEIGHT_FLED_B, WEIGHT_PREDATION_B, WEIGHT_CATCH_B);
-        if (interaction == Interaction::CATCH) {        // disparition si attrapé
+            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING_B, WEIGHT_ALIGNMENT_B, WEIGHT_COHESION_B, WEIGHT_FLED_B, WEIGHT_PREDATION_B, WEIGHT_CATCH_B, envWidth, envHeight);
+        if (boids[i]->getCurrentInteraction() == Interaction::CATCH) {        // disparition si attrapé
             vPose boidPose = boids[i]->getPose();
             removeThisBoid(boids[i]);
             addPredator(boidPose, SPEED_P, ANG_V_B, LIFE_P);
             break;
         } else {
-            if (interaction == Interaction::FLED) {     // fuite plus rapide
+            if (boids[i]->getCurrentInteraction() == Interaction::FLED) {     // fuite plus rapide
                 boids[i]->setSpeed(SPEED_B * BOOST_SPEED);
                 boids[i]->setAngVelocity(ANG_V_B * BOOST_ANGV);
             }
             boids[i]->move(envWidth, envHeight);
-            boids[i]->setSpeed(SPEED_B)
-            boids[i]->setAngVelocity(ANG_V_B)
+            boids[i]->setSpeed(SPEED_B);
+            boids[i]->setAngVelocity(ANG_V_B);
             }
         }
         // Parcourir tous les predators
         for (int i = 0; i < predators.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zoneprdt->getNearBoids(predators[i], boids, predators, envWidth, envHeight);
-            predators[i]->applyRules(neighbors, WEIGHT_DISTANCING_P, WEIGHT_ALIGNMENT_P, WEIGHT_COHESION_P, WEIGHT_FLED_P, WEIGHT_PREDATION_P, WEIGHT_CATCH_P);
+            predators[i]->applyRules(neighbors, WEIGHT_DISTANCING_P, WEIGHT_ALIGNMENT_P, WEIGHT_COHESION_P, WEIGHT_FLED_P, WEIGHT_PREDATION_P, WEIGHT_CATCH_P, envWidth, envHeight);
             if (predators[i]->getLifeTime() <= 0) {     // supprimer le predator si sa vie est fini
-                removeThisPredator(predators[i])
+                removeThisPredator(predators[i]);
                 break;
             } else {
             predators[i]->move(envWidth, envHeight);
-            predators[i]->setLifeTime(predators[i]->getLifeTime() - 1)
+            predators[i]->setLifeTime(predators[i]->getLifeTime() - 1);
             }
         }
         updateDisplay();
