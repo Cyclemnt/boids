@@ -7,7 +7,7 @@
 #include <chrono>
 
 // Paramètres
-#define NUM_BOIDS 65536      // Nombre de Boids initialisés au début
+#define NUM_BOIDS 2 * 32768      // Nombre de Boids initialisés au début
 #define SPEED 35             // Vitesse des Boids (px/s)
 #define ANG_V (2 * M_PIf)    // Vitesse angulaire maximum des Boids (rad/s)
 #define FOV 5                // Angle de vue des Boids (rad)
@@ -99,7 +99,7 @@ void Simulation::initializeBoidsRandomly(int numBoids) {
     std::uniform_real_distribution<> yDist(0, envHeight);
     std::uniform_real_distribution<> thetaDist(0, 2 * M_PIf);
     std::uniform_real_distribution<> offsetDist(0, rand());
-    float offsetTheta = Types::customMod(offsetDist(gen), 2*M_PIf);
+    float offsetTheta = Types::customMod(offsetDist(gen), 2 * M_PIf);
     
     for (int i = 0; i < numBoids; ++i) {
         float newX = xDist(gen);  // Position x aléatoire
