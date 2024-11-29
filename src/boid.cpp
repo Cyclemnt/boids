@@ -1,5 +1,4 @@
 #include "../include/boid.hpp"
-#include "boid.hpp"
 #include <iostream>
 #include <cmath>
 #include <algorithm> // std::clamp()
@@ -46,7 +45,6 @@ void Boid::move(int envWidth, int envHeight) {
 
 // Méthode pour modifier l'orientation du boid en fonction des voisins
 void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch, int envWidth, int envHeight) {
-    currentInteraction = interaction; // Mettre à jour l'interaction actuelle
 
     // NONE par défaut
     currentInteraction = Interaction::NONE;

@@ -96,7 +96,7 @@ std::vector<std::vector<Boid*>> Zone::getNearBoids(Boid* boid, std::vector<Boid*
             catchNeighbors.push_back(predators[i]);
         }
     }
-    return {distancingNeighbors, alignmentNeighbors, cohesionNeighbors, feldNeighbors, predationNeighbors, catchNeighbors};
+    return {distancingNeighbors, alignmentNeighbors, cohesionNeighbors, fledNeighbors, predationNeighbors, catchNeighbors};
 }
 
 
