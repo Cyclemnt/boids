@@ -7,7 +7,7 @@
 #include <chrono>
 
 // Paramètres
-#define NUM_BOIDS 2 * 32768      // Nombre de Boids initialisés au début
+#define NUM_BOIDS 32768      // Nombre de Boids initialisés au début
 #define SPEED 35             // Vitesse des Boids (px/s)
 #define ANG_V (2 * M_PIf)    // Vitesse angulaire maximum des Boids (rad/s)
 #define FOV 5                // Angle de vue des Boids (rad)
@@ -42,7 +42,7 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 void Simulation::run() {
     omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles
     std::cout << "Nombre de threads (CPU) pour l'affichage : " << omp_get_max_threads() << std::endl;
-    std::vector<float> t; float total = 0.0f; long int it = 0;
+    //std::vector<float> t; float total = 0.0f; long int it = 0;
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(NUM_BOIDS);
     
@@ -55,10 +55,10 @@ void Simulation::run() {
         int key = cv::waitKey(1);
         if (key != -1) {
 
-        for (int i = 0; i < t.size(); i++) {
-            total += t[i];
-        }
-        std::cout << "avg " << total / it << std::endl;
+        //for (int i = 0; i < t.size(); i++) {
+        //    total += t[i];
+        //}
+        //std::cout << "avg " << total / it << std::endl;
         handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
 
         }
@@ -68,7 +68,7 @@ void Simulation::run() {
         // Copier les tableaux dans la GPU
         copyBoidDataToGPU(boids);
 
-        auto start = std::chrono::high_resolution_clock::now(); // démarrage du chronomètre
+        //auto start = std::chrono::high_resolution_clock::now(); // démarrage du chronomètre
         // Appeler le kernel CUDA
         updateBoidsCUDA(
             boids.d_positionsX, boids.d_positionsY, boids.d_orientations, boids.d_interations,
@@ -76,10 +76,10 @@ void Simulation::run() {
             boids.halvedFov, boids.rDistancingSquared, boids.rAlignmentSquared, boids.rCohesionSquared,
             WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION
         );
-        auto end = std::chrono::high_resolution_clock::now(); // fin du chronomètre
-        std::chrono::duration<float, std::milli> duration = end - start; // calcul de la durée en millisecondes
-        t.push_back(duration.count()); it++;
-        std::cout << it << " " << duration.count() << " ms" << std::endl; // affichage du temps en millisecondes
+        //auto end = std::chrono::high_resolution_clock::now(); // fin du chronomètre
+        //std::chrono::duration<float, std::milli> duration = end - start; // calcul de la durée en millisecondes
+        //t.push_back(duration.count()); it++;
+        //std::cout << it << " " << duration.count() << " ms" << std::endl; // affichage du temps en millisecondes
 
         // Récupérer les tableaux dans le CPU
         copyBoidDataToCPU(boids);
