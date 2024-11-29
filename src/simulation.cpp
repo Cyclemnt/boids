@@ -10,7 +10,7 @@
     #define INSTINCT_B 6          // Angle de déctection des prédateurs
     #define LIFE_B 0              // temps de vie d'un boid ( inutilisé )
     //predators
-    #define NUM_PREDATORS 1      // Nombre de predators initialisés au début
+    #define NUM_PREDATORS 2      // Nombre de predators initialisés au début
     #define SPEED_P 300           // Vitesse des predators (px/s)
     #define ANG_V_P (2 * M_PI)    // Vitesse angulaire maximum des predators (rad/s)
     #define FOV_P 5               // Angle de vue des predators (rad)
@@ -34,7 +34,7 @@
 // Poids des règles d'interaction
     //boids
     #define WEIGHT_DISTANCING_B 0.05
-    #define WEIGHT_ALIGNMENT_B 0.005
+    #define WEIGHT_ALIGNMENT_B 0.05
     #define WEIGHT_COHESION_B 0.0005
     #define WEIGHT_FLED_B 0.5
     #define WEIGHT_PREDATION_B 0
@@ -94,7 +94,9 @@ void Simulation::run() {
             std::vector<std::vector<Boid*>> neighbors = zoneprdt->getNearBoids(predators[i], boids, predators, envWidth, envHeight);
             predators[i]->applyRules(neighbors, WEIGHT_DISTANCING_P, WEIGHT_ALIGNMENT_P, WEIGHT_COHESION_P, WEIGHT_FLED_P, WEIGHT_PREDATION_P, WEIGHT_CATCH_P, envWidth, envHeight);
             if (predators[i]->getLifeTime() <= 0) {     // supprimer le predator si sa vie est fini
+                vPose predatorPose = predators[i]->getPose();
                 removeThisPredator(predators[i]);
+                addFood(predatorPose);
                 break;
             } else {
             predators[i]->move(envWidth, envHeight);
@@ -149,6 +151,21 @@ void Simulation::removeThisPredator(Boid* predator) {
     auto it = std::find(predators.begin(), predators.end(), predator);
     if (it != predators.end()) {
         predators.erase(it);
+    }
+}
+
+// Méthode pour ajouter un food à la simulation
+void Simulation::addFood(vPose pose) {
+    Boid* newFood = new Boid(pose, 0, 0, 0);
+    newFood->setTimeStep(timeStep);
+    foods.push_back(newFood);
+}
+
+// Méthode pour supprimer un food précis de la simulation
+void Simulation::removeThisFood(Boid* food) {
+    auto it = std::find(foods.begin(), foods.end(), food);
+    if (it != foods.end()) {
+        foods.erase(it);
     }
 }
 
@@ -247,6 +264,11 @@ void Simulation::updateDisplay() {
     // Mettre à jour chaque predator
     for (Boid* predator : predators) {
         displayPredator(image, predator); // Afficher le boid dans l'image
+    }
+
+    // Mettre à jour chaque food
+    for (Boid* food : foods) {
+        displayFood(image, food); // Afficher le boid dans l'image
     }
     
     // Afficher l'image dans une fenêtre OpenCV
@@ -370,6 +392,21 @@ void Simulation::displayPredator(cv::Mat& image, const Boid* predator) {
     }},
     color
 );
+}
+
+// Affiche un élément de nourriture sous forme de petit cercle blanc
+void Simulation::displayFood(cv::Mat& image, const Boid* food) {
+    // Déterminer la position de la nourriture
+    vPose pose = food->getPose();
+    double x = pose.x;
+    double y = pose.y;
+    double radius = 5.0; // Rayon du cercle représentant la nourriture
+
+    // Couleur blanche pour représenter la nourriture
+    cv::Scalar color(255, 255, 255); // Blanc (BGR)
+
+    // Dessiner un cercle rempli
+    cv::circle(image, cv::Point(x, y), static_cast<int>(radius), color, cv::FILLED);
 }
 
 // Vérifie si la simulation est en pause

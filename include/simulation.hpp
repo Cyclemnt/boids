@@ -10,7 +10,7 @@ class Simulation {
         int envWidth, envHeight, timeStep;
         std::vector<Boid*> boids;
         std::vector<Boid*> predators;
-        //std::vector<Boid*> food;
+        std::vector<Boid*> foods;
         Zone* zoneptr;
         Zone* zoneprdt;
         bool paused;
@@ -32,6 +32,10 @@ class Simulation {
         void removePredator();
         // Méthode pour supprimer un predator précis de la simulation
         void removeThisPredator(Boid* predator);
+        // Méthode pour ajouter un food à la simulation
+        void addFood(vPose pose);
+        // Méthode pour supprimer un food précis de la simulation
+        void removeThisFood(Boid* food);
         // Méthode pour initialiser les boids de manière aléatoire
         void initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity, int lifeTime);
         // Méthode pour initialiser les predators de manière aléatoire
@@ -48,6 +52,8 @@ class Simulation {
         void displayBoid(cv::Mat& image, const Boid* boid);
         // Affiche chaque predator avec une couleur selon son interaction
         void displayPredator(cv::Mat& image, const Boid* predator);
+        // Affichage d'un élément de nouriture sous forme d'un cercle blanc
+        void displayFood(cv::Mat& image, const Boid* food);
         // Méthode pour obtenir l'état de la simulation
         bool isPaused() const ;
 
