@@ -12,144 +12,27 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 
 // Lance la Simulation
 void Simulation::run() {
-    // Initialiser 50 boids avec des positions et paramètres aléatoires
-    double speedVar = 2;
-    double velocityVar = 2;
-    double originalSpeed = 75;
-    double originalAngVelocity =  2 * M_PI;
-    int lifePred = 400;
-    int lifeBoid = 100; // fatigue boid 
-    initializeBoidsRandomly(400, originalSpeed, originalAngVelocity, lifeBoid);
-    initializePredatorsRandomly(1, 170, 2 * M_PI, lifePred);
-    // Lancer la simulation
+    // Initialiser des boids avec des positions aléatoires
+    initializeBoidsRandomly(NUM_BOIDS, SPEED, ANG_V);
+
+    // Boucle principale
     while (true) {
         // Gestion des entrées clavier
-        int key = cv::waitKey(timeStep);
+        int key = cv::waitKey(timeStep); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
-        // simulation pour les boids
+
+        // Parcourir tous les boids
         for (int i = 0; i < boids.size(); i++) {
-            bool hasInteraction = false;
-            for (auto interaction : {Interaction::CATCH, Interaction::FLED, Interaction::DISTANCING, Interaction::ALIGNMENT, Interaction::COHESION}) {
-                auto neighbors = (interaction == Interaction::FLED || interaction == Interaction::CATCH) ? zoneptr->getNearBoids(interaction, boids[i], boids, predators, predators, envWidth, envHeight) 
-                                                                                                        :zoneptr->getNearBoids(interaction, boids[i], boids, boids, predators, envWidth, envHeight);   
-                if (!neighbors.empty()) {
-                    if (interaction == Interaction::CATCH) {
-                        vPose boidPose = boids[i]->getPose();
-                        removeThisBoid(boids[i]);
-                        addPredator(boidPose, 150, 2 * M_PI, lifePred);
-                        break;
-                    } else {
-                        boids[i]->applyRules(interaction, neighbors);
-                        hasInteraction = true;
-                        if (interaction == Interaction::FLED) {
-                            boids[i]->setSpeed(originalSpeed * speedVar);
-                            boids[i]->setAngVelocity(originalAngVelocity * velocityVar);
-                        }
-                        break; // Si une interaction est trouvée, arrêter de vérifier les autres
-                    }
-                }
-            }
-
-            // Si aucune interaction, appliquer NONE
-            if (!hasInteraction) {
-                boids[i]->applyRules(Interaction::NONE, {});
-            }
-
-            // Mettre à jour la position
-                boids[i]->move(envWidth, envHeight);
-                boids[i]->setSpeed(originalSpeed);  // Réinitialiser la vitesse
-                boids[i]->setAngVelocity(originalAngVelocity);  // Réinitialiser la vitesse angulaire
-        }
-        // simulation pour les predators
-        for (int i = 0; i < predators.size(); i++) {
-            bool hasInteraction = false;
-            for (auto interaction : {Interaction::CATCH, Interaction::FLED, Interaction::PREDATION, Interaction::COHESION}) {
-                auto neighbors = (interaction == Interaction::FLED) ?  zoneprdt->getNearBoids(interaction, predators[i], predators, predators, predators, envWidth, envHeight) 
-                                                                    :  zoneprdt->getNearBoids(interaction, predators[i], predators, boids, predators, envWidth, envHeight);
-                if (!neighbors.empty()) {
-                    if (interaction == Interaction::CATCH) {
-                        predators[i]->setLifeTime(lifePred);
-                        hasInteraction = true;
-                        break;
-                    } else {
-                        predators[i]->applyRules(interaction, neighbors);
-                        hasInteraction = true;
-                        break; // Si une interaction est trouvée, arrêter de vérifier les 
-                    }
-                }
-            }
-
-            // Si aucune interaction, appliquer NONE
-            if (!hasInteraction) {
-                boids[i]->applyRules(Interaction::NONE, {});
-            }
-
-            // Mettre à jour la position
-            predators[i]->move(envWidth, envHeight);
-
-            // Décrémenter le temps de vie du predator
-            predators[i]->setLifeTime(predators[i]->getLifeTime() - 1);
-
-            // Supprimez le predator si son survivalTime atteint zéro
-            if (predators[i]->getLifeTime() <= 0) {
-                vPose predatorPose = predators[i]->getPose();
-                removeThisPredator(predators[i]);
-                addBoid(predatorPose, originalSpeed, originalAngVelocity, lifeBoid);
-                i--;    // Ajustez l'indice après suppression
-                }
+            std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, envWidth, envHeight);
+            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION);
+            boids[i]->move(envWidth, envHeight);
         }
         updateDisplay();
     }
 }
 
-// Méthode pour ajouter un boid à la simulation
-void Simulation::addBoid(vPose pose, double maxSpeed, double maxAngVelocity, int lifeTime) {
-    Boid* newBoid = new Boid(pose, maxSpeed, maxAngVelocity, lifeTime);
-    newBoid->setTimeStep(timeStep);
-    boids.push_back(newBoid);
-}
-
-// Méthode pour supprimer un boid de la simulation
-void Simulation::removeBoid() {
-    if (!boids.empty()) {
-        delete boids.back();
-        boids.pop_back();
-    }
-}
-
-// Méthode pour supprimer un boid précis de la simulation
-void Simulation::removeThisBoid(Boid* boid) {
-    auto it = std::find(boids.begin(), boids.end(), boid);
-    if (it != boids.end()) {
-        boids.erase(it);
-    }
-}
-
-
-// Méthode pour ajouter un predator à la simulation
-void Simulation::addPredator(vPose pose, double maxSpeed, double maxAngVelocity, int lifeTime) {
-    Boid* newPredator = new Boid(pose, maxSpeed, maxAngVelocity, lifeTime);
-    newPredator->setTimeStep(timeStep);
-    predators.push_back(newPredator);
-}
-
-// Méthode pour supprimer un predator de la simulation
-void Simulation::removePredator() {
-    if (!predators.empty()) {
-        delete predators.back();
-        predators.pop_back();
-    }
-}
-
-// Méthode pour supprimer un predator précis de la simulation
-void Simulation::removeThisPredator(Boid* predator) {
-    auto it = std::find(predators.begin(), predators.end(), predator);
-    if (it != predators.end()) {
-        predators.erase(it);
-    }
-}
 
 // Méthode pour initialiser les boids de manière aléatoire
 void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity, int lifeTime) {
@@ -171,7 +54,7 @@ void Simulation::initializeBoidsRandomly(int numBoids, double maxSpeed, double m
     }
 }
 
-// Méthode pour initialiser les boids de manière aléatoire
+// Méthode pour initialiser les predators de manière aléatoire
 void Simulation::initializePredatorsRandomly(int numBoids, double maxSpeed, double maxAngVelocity, int lifeTime) {
     // Création d'un moteur aléatoire avec une graine unique
     std::random_device rd;  // Génére une graine à partir de l'environnement

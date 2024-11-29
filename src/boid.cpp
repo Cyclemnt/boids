@@ -45,54 +45,96 @@ void Boid::move(int envWidth, int envHeight) {
 }
 
 // Méthode pour modifier l'orientation du boid en fonction des voisins
-void Boid::applyRules(Interaction interaction, std::vector<Boid*> neighbors) {
+void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch) {
     currentInteraction = interaction; // Mettre à jour l'interaction actuelle
 
-    if (interaction == Interaction::NONE || neighbors.empty()) {
-        return; // Aucune règle à appliquer
+    // NONE par défaut
+    currentInteraction = Interaction::NONE;
+    // COHESION
+    double cohesionX = 0, cohesionY = 0;
+    if (!neighbors[2].empty()) {
+        for (const Boid* neighbor : neighbors[2]) {
+            cohesionX += neighbor->getPose().x - pose.x;
+            cohesionY += neighbor->getPose().y - pose.y;
+        }
+        cohesionX = cohesionX / neighbors[2].size();
+        cohesionY = cohesionY / neighbors[2].size();
+        currentInteraction = Interaction::COHESION;
+    }
+    // ALIGNMENT
+    double alignX = 0, alignY = 0;
+    if (!neighbors[1].empty()) {
+        for (const Boid* neighbor : neighbors[1]) {
+            alignX += cos(neighbor->getPose().theta);
+            alignY += sin(neighbor->getPose().theta);
+        }
+        alignX = alignX / neighbors[1].size();
+        alignY = alignY / neighbors[1].size();
+        currentInteraction = Interaction::ALIGNMENT;
+    }
+    // DISTANCING
+    double distX = 0, distY = 0;
+    if (!neighbors[0].empty()) {
+        for (const Boid* neighbor : neighbors[0]) {
+            distX -= neighbor->getPose().x - pose.x;
+            distY -= neighbor->getPose().y - pose.y;
+        }
+        distX = distX / neighbors[0].size();
+        distY = distY / neighbors[0].size();
+        currentInteraction = Interaction::DISTANCING;
+    }
+    // FLED
+    double alignX = 0, alignY = 0;
+    if (!neighbors[1].empty()) {
+        for (const Boid* neighbor : neighbors[1]) {
+            alignX += cos(neighbor->getPose().theta);
+            alignY += sin(neighbor->getPose().theta);
+        }
+        alignX = alignX / neighbors[1].size();
+        alignY = alignY / neighbors[1].size();
+        currentInteraction = Interaction::ALIGNMENT;
+    }
+    // PREDATION
+    double alignX = 0, alignY = 0;
+    if (!neighbors[1].empty()) {
+        for (const Boid* neighbor : neighbors[1]) {
+            alignX += cos(neighbor->getPose().theta);
+            alignY += sin(neighbor->getPose().theta);
+        }
+        alignX = alignX / neighbors[1].size();
+        alignY = alignY / neighbors[1].size();
+        currentInteraction = Interaction::ALIGNMENT;
+    }
+    // CATCH
+    double alignX = 0, alignY = 0;
+    if (!neighbors[1].empty()) {
+        for (const Boid* neighbor : neighbors[1]) {
+            alignX += cos(neighbor->getPose().theta);
+            alignY += sin(neighbor->getPose().theta);
+        }
+        alignX = alignX / neighbors[1].size();
+        alignY = alignY / neighbors[1].size();
+        currentInteraction = Interaction::ALIGNMENT;
     }
 
-    // Calcul de la position moyenne des voisins
-    vPose avgPose = {0, 0, 0};
-    double avgThetaX = 0;
-    double avgThetaY = 0;
+    // S'il y a des voisins, changer de direction
+    if (currentInteraction != Interaction::NONE) {
+        // Combiner les vecteurs
+        double newDirX = weightDistancing * distX + weightAlignment * alignX + weightCohesion * cohesionX;
+        double newDirY = weightDistancing * distY + weightAlignment * alignY + weightCohesion * cohesionY;
 
-    for (const Boid* neighbor : neighbors) {
-        avgPose = avgPose + neighbor->getPose();
-        avgThetaX += cos(neighbor->getPose().theta);
-        avgThetaY += sin(neighbor->getPose().theta);
+        // Calculer la nouvelle orientation
+        double newOrientation = atan2(newDirY, newDirX);
+        // Normaliser les angles entre -π et π
+
+        double angleDifference = Types::customMod(newOrientation - pose.theta + M_PI, 2 * M_PI) - M_PI;
+        // Limiter la vitesse angulaire
+        double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
+        double angularChange = std::clamp(angleDifference, -angVelocity * timeStepInSeconds, angVelocity * timeStepInSeconds);
+        // Mettre à jour l'orientation
+        pose.theta += angularChange;
+        pose.theta = Types::customMod(pose.theta, 2 * M_PI); // S'assurer que theta est dans [0, 2π[*
     }
-    avgPose = avgPose / neighbors.size();
-    avgThetaX = avgThetaX / neighbors.size();
-    avgThetaY = avgThetaY / neighbors.size();
-
-    // Calcul de la direction cible en fonction de l'interaction
-    double targetTheta = 0;
-    if (interaction == Interaction::DISTANCING) {
-        vPose relPose = avgPose - pose;
-        targetTheta = atan2(-relPose.y, -relPose.x);  // Éloignement, direction opposée au centre
-    } else if (interaction == Interaction::ALIGNMENT) {
-        targetTheta = atan2(avgThetaY, avgThetaX);    // Alignement avec l'orientation moyenne
-    } else if (interaction == Interaction::COHESION) {
-        vPose relPose = avgPose - pose;
-        targetTheta = atan2(relPose.y, relPose.x); // Cohésion, direction vers le centre
-    } else if (interaction == Interaction::FLED) {
-        vPose relPose = avgPose - pose;
-        targetTheta = atan2(-relPose.y, -relPose.x);  // Éloignement, direction opposée au predator       
-    }else if (interaction == Interaction::PREDATION) {
-        vPose relPose = avgPose - pose;
-        targetTheta = atan2(relPose.y, relPose.x); // Cohésion raproché
-    }
-
-    // Normaliser les angles entre -π et π
-    double angleDifference = Types::customMod(targetTheta - pose.theta + M_PI, 2 * M_PI) - M_PI;
-    // Limiter la vitesse angulaire
-    double timeStepInSeconds = static_cast<double>(timeStep) / 1000.0;
-    double angularChange = std::clamp(angleDifference, -angVelocity * timeStepInSeconds, angVelocity * timeStepInSeconds);
-    // Mettre à jour l'orientation
-    pose.theta += angularChange;
-    pose.theta = Types::customMod(pose.theta, 2 * M_PI); // S'assurer que theta est dans [0, 2π[
-
 }
 
 // Getters
