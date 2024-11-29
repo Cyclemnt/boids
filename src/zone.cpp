@@ -24,13 +24,13 @@ std::vector<std::vector<Boid*>> Zone::getNearBoids(Boid* boid, std::vector<Boid*
         double dx = neighborPose.x - boidPose.x;
         double dy = neighborPose.y - boidPose.y;
 
-        double absDx = fabs(dx);
-        double absDy = fabs(dy);
-
         // Calculer la distance torique
-        if (absDx > 0.5 * envWidth) absDx = envWidth - absDx;
-        if (absDy > 0.5 * envHeight) absDy = envHeight - absDy;
-        double distance = sqrt((absDx * absDx) + (absDy * absDy));
+        if (fabs(dx) > (0.5 * envWidth)) dx -= copysign(envWidth, dx);
+        if (fabs(dy) > (0.5 * envHeight)) dy -= copysign(envHeight, dy);
+
+        double distance = sqrt((dx * dx) + (dy * dy));
+
+        if (distance > rCohesion) continue;
 
         // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe x
         double angleToNeighbor = atan2(dy, dx);

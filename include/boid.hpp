@@ -24,7 +24,7 @@ public:
     // Méthode pour faire avancer le boid
     void move(int envWidth, int envHeight);
     // Méthode pour modifier l'orientation du boid en fonction des voisins
-    void applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDistancing, double weightAlignment, double weightCohesion);
+    void applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, int envWidth, int envHeight);
 
     // Getters
     vPose getPose() const;

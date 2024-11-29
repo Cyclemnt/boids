@@ -39,7 +39,7 @@ void Simulation::run() {
         // Parcourir tous les boids
         for (int i = 0; i < boids.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, envWidth, envHeight);
-            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION);
+            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION, envWidth, envHeight);
             boids[i]->move(envWidth, envHeight);
         }
         updateDisplay();
