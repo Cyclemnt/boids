@@ -119,8 +119,8 @@ __global__ void updateBoidsKernel(
             float dy = sharedPositionsY[j] - posY;
             
             // Calculer la distance torique
-            if (dx > 0.5f * envWidth) dx = envWidth - dx;
-            if (dy > 0.5f * envHeight) dy = envHeight - dy;
+            if (fabsf(dx) > 0.5f * envWidth) dx -= copysignf(envWidth, dx);
+            if (fabsf(dy) > 0.5f * envHeight) dy -= copysignf(envHeight, dy);
 
             // Calculer la distance euclidienne avec les distances minimales en x et y
             float distanceSquared = (dx * dx) + (dy * dy);
