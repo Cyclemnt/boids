@@ -72,6 +72,17 @@ void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, dou
         alignY = alignY / neighbors[1].size();
         currentInteraction = Interaction::ALIGNMENT;
     }
+    // PREDATION
+    double predationX = 0, predationY = 0;
+    if (!neighbors[4].empty()) {
+        for (const Boid* neighbor : neighbors[4]) {
+            predationX += neighbor->getPose().x - pose.x;
+            predationY += neighbor->getPose().y - pose.y;
+        }
+        predationX = predationX / neighbors[4].size();
+        predationY = predationY / neighbors[4].size();
+        currentInteraction = Interaction::PREDATION;
+    }
     // DISTANCING
     double distX = 0, distY = 0;
     if (!neighbors[0].empty()) {
@@ -84,44 +95,27 @@ void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, dou
         currentInteraction = Interaction::DISTANCING;
     }
     // FLED
-    double alignX = 0, alignY = 0;
-    if (!neighbors[1].empty()) {
-        for (const Boid* neighbor : neighbors[1]) {
-            alignX += cos(neighbor->getPose().theta);
-            alignY += sin(neighbor->getPose().theta);
+    double fledX = 0, fledY = 0;
+    if (!neighbors[3].empty()) {
+        for (const Boid* neighbor : neighbors[3]) {
+            fledX -= neighbor->getPose().x - pose.x;
+            fledY -= neighbor->getPose().y - pose.y;
         }
-        alignX = alignX / neighbors[1].size();
-        alignY = alignY / neighbors[1].size();
-        currentInteraction = Interaction::ALIGNMENT;
-    }
-    // PREDATION
-    double alignX = 0, alignY = 0;
-    if (!neighbors[1].empty()) {
-        for (const Boid* neighbor : neighbors[1]) {
-            alignX += cos(neighbor->getPose().theta);
-            alignY += sin(neighbor->getPose().theta);
-        }
-        alignX = alignX / neighbors[1].size();
-        alignY = alignY / neighbors[1].size();
-        currentInteraction = Interaction::ALIGNMENT;
+        fledX = fledX / neighbors[3].size();
+        fledY = fledY / neighbors[3].size();
+        currentInteraction = Interaction::FLED;
     }
     // CATCH
     double alignX = 0, alignY = 0;
-    if (!neighbors[1].empty()) {
-        for (const Boid* neighbor : neighbors[1]) {
-            alignX += cos(neighbor->getPose().theta);
-            alignY += sin(neighbor->getPose().theta);
-        }
-        alignX = alignX / neighbors[1].size();
-        alignY = alignY / neighbors[1].size();
-        currentInteraction = Interaction::ALIGNMENT;
+    if (!neighbors[5].empty()) {
+        currentInteraction = Interaction::CATCH;
     }
 
     // S'il y a des voisins, changer de direction
     if (currentInteraction != Interaction::NONE) {
         // Combiner les vecteurs
-        double newDirX = weightDistancing * distX + weightAlignment * alignX + weightCohesion * cohesionX;
-        double newDirY = weightDistancing * distY + weightAlignment * alignY + weightCohesion * cohesionY;
+        double newDirX = weightDistancing * distX + weightAlignment * alignX + weightCohesion * cohesionX + weightFeld * fledX + weightPredation * predationX;
+        double newDirY = weightDistancing * distY + weightAlignment * alignY + weightCohesion * cohesionY + weightFeld * fledY + weightPredation * predationY;
 
         // Calculer la nouvelle orientation
         double newOrientation = atan2(newDirY, newDirX);
