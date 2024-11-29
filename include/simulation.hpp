@@ -10,6 +10,7 @@ class Simulation {
         int envWidth, envHeight, timeStep;
         std::vector<Boid*> boids;
         std::vector<Boid*> predators;
+        //std::vector<Boid*> food;
         Zone* zoneptr;
         Zone* zoneprdt;
         bool paused;

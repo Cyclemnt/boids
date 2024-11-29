@@ -33,19 +33,19 @@ void Boid::move(int envWidth, int envHeight) {
     // Assurer le comportement torique de l'environnement
     if (pose.x < 0) {
         pose.x += envWidth;
-    } else if (pose.x >= envWidth) {
+    } else if (pose.x > envWidth) {
         pose.x -= envWidth;
     }
 
     if (pose.y < 0) {
         pose.y += envHeight;
-    } else if (pose.y >= envHeight) {
+    } else if (pose.y > envHeight) {
         pose.y -= envHeight;
     }
 }
 
 // Méthode pour modifier l'orientation du boid en fonction des voisins
-void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch) {
+void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch, int envWidth, int envHeight) {
     currentInteraction = interaction; // Mettre à jour l'interaction actuelle
 
     // NONE par défaut
@@ -54,8 +54,12 @@ void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, dou
     double cohesionX = 0, cohesionY = 0;
     if (!neighbors[2].empty()) {
         for (const Boid* neighbor : neighbors[2]) {
-            cohesionX += neighbor->getPose().x - pose.x;
-            cohesionY += neighbor->getPose().y - pose.y;
+            double dx = neighbor->getPose().x - pose.x;
+            double dy = neighbor->getPose().y - pose.y;
+            if (fabs(dx) > (0.5 * envWidth)) dx -= copysign(envWidth, dx);
+            if (fabs(dy) > (0.5 * envHeight)) dy -= copysign(envHeight, dy);
+            cohesionX += dx;
+            cohesionY += dy;
         }
         cohesionX = cohesionX / neighbors[2].size();
         cohesionY = cohesionY / neighbors[2].size();
@@ -76,8 +80,12 @@ void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, dou
     double predationX = 0, predationY = 0;
     if (!neighbors[4].empty()) {
         for (const Boid* neighbor : neighbors[4]) {
-            predationX += neighbor->getPose().x - pose.x;
-            predationY += neighbor->getPose().y - pose.y;
+            double dx = neighbor->getPose().x - pose.x;
+            double dy = neighbor->getPose().y - pose.y;
+            if (fabs(dx) > (0.5 * envWidth)) dx -= copysign(envWidth, dx);
+            if (fabs(dy) > (0.5 * envHeight)) dy -= copysign(envHeight, dy);
+            predationX += dx;
+            predationY += dy;
         }
         predationX = predationX / neighbors[4].size();
         predationY = predationY / neighbors[4].size();
@@ -87,8 +95,12 @@ void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, dou
     double distX = 0, distY = 0;
     if (!neighbors[0].empty()) {
         for (const Boid* neighbor : neighbors[0]) {
-            distX -= neighbor->getPose().x - pose.x;
-            distY -= neighbor->getPose().y - pose.y;
+            double dx = neighbor->getPose().x - pose.x;
+            double dy = neighbor->getPose().y - pose.y;
+            if (fabs(dx) > (0.5 * envWidth)) dx -= copysign(envWidth, dx);
+            if (fabs(dy) > (0.5 * envHeight)) dy -= copysign(envHeight, dy);
+            distX -= dx;
+            distY -= dy;
         }
         distX = distX / neighbors[0].size();
         distY = distY / neighbors[0].size();
@@ -98,8 +110,12 @@ void Boid::applyRules(std::vector<Boid*> neighbors, double weightDistancing, dou
     double fledX = 0, fledY = 0;
     if (!neighbors[3].empty()) {
         for (const Boid* neighbor : neighbors[3]) {
-            fledX -= neighbor->getPose().x - pose.x;
-            fledY -= neighbor->getPose().y - pose.y;
+            double dx = neighbor->getPose().x - pose.x;
+            double dy = neighbor->getPose().y - pose.y;
+            if (fabs(dx) > (0.5 * envWidth)) dx -= copysign(envWidth, dx);
+            if (fabs(dy) > (0.5 * envHeight)) dy -= copysign(envHeight, dy);
+            fledX -= dx;
+            fledY -= dy;
         }
         fledX = fledX / neighbors[3].size();
         fledY = fledY / neighbors[3].size();

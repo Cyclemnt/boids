@@ -15,7 +15,7 @@ public :
     Zone(double rDistancing_, double rAlignment_, double rCohesion_, double rPredation_, double rFled_, double rCatch_, double fov_, double instinct_);
 
     // Méthode pour obtenir tous les boids dans un certain rayon autour du boid
-    std::vector<Boid*> getNearBoids(Interaction interaction, Boid* boid, std::vector<Boid*> boids, std::vector<Boid*> targets, std::vector<Boid*> predators, int envWidth, int envHeight);
+    std::vector<Boid*> getNearBoids(Boid* boid, std::vector<Boid*> boids, std::vector<Boid*> predators, int envWidth, int envHeight);
     // Méthode pour vérifier si un boid voisin est dans le fov du boid
     bool angleWithinFOV(const vPose& boidPose, const vPose& neighborPose);
     // Méthode pour vérifier si un predator voisin est dans le fov(instinct) du boid
