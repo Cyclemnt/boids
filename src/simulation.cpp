@@ -3,27 +3,29 @@
 
 // Paramètres
     //boids
-    #define NUM_BOIDS 800         // Nombre de Boids initialisés au début
-    #define SPEED_B 140           // Vitesse des Boids (px/s)
+    #define NUM_BOIDS 800       // Nombre de Boids initialisés au début
+    #define SPEED_B 200           // Vitesse des Boids (px/s)
     #define ANG_V_B (2 * M_PI)    // Vitesse angulaire maximum des Boids (rad/s)
     #define FOV_B 5               // Angle de vue des Boids (rad)
     #define INSTINCT_B 6          // Angle de déctection des prédateurs
     #define LIFE_B 0              // temps de vie d'un boid ( inutilisé )
     //predators
-    #define NUM_PREDATORS 2      // Nombre de predators initialisés au début
+    #define NUM_PREDATORS 5      // Nombre de predators initialisés au début
     #define SPEED_P 300           // Vitesse des predators (px/s)
     #define ANG_V_P (2 * M_PI)    // Vitesse angulaire maximum des predators (rad/s)
     #define FOV_P 5               // Angle de vue des predators (rad)
     #define INSTINCT_P 5          // Angle de déctection des predators
-    #define LIFE_P 200              // temps de vie d'un predator
+    #define LIFE_P 200            // temps de vie d'un predator
 // Rayons des règles d'interaction (px)
     //boids 
     #define R_DISTANCING_B 10
     #define R_ALIGNMENT_B 40
     #define R_COHESINON_B 90
-    #define R_FLED_B 60
+    #define R_FLED_B 50
     #define R_PREDATION_B 0
-    #define R_CATCH_B 2
+    #define R_CATCH_B 1
+    #define R_FEED_B 50
+    #define R_BREED_B 0
     //predators
     #define R_DISTANCING_P 0
     #define R_ALIGNMENT_P 0
@@ -31,16 +33,22 @@
     #define R_FLED_P 10
     #define R_PREDATION_P 40
     #define R_CATCH_P 0
+    #define R_FEED_P 0
+    #define R_BREED_P 0
+    //food
+    #define R_BREED_F 1
 // Poids des règles d'interaction
     //boids
     #define WEIGHT_DISTANCING_B 0.05
     #define WEIGHT_ALIGNMENT_B 0.05
     #define WEIGHT_COHESION_B 0.0005
-    #define WEIGHT_FLED_B 0.5
+    #define WEIGHT_FLED_B 0.3
     #define WEIGHT_PREDATION_B 0
     #define WEIGHT_CATCH_B 0
-    #define BOOST_SPEED 3
-    #define BOOST_ANGV 3
+    #define WEIGHT_FEED_B 0.2
+    #define WEIGHT_BREED_B 0
+    #define BOOST_SPEED 2
+    #define BOOST_ANGV 2
     //predators
     #define WEIGHT_DISTANCING_P 0
     #define WEIGHT_ALIGNMENT_P 0
@@ -48,13 +56,16 @@
     #define WEIGHT_FLED_P 0.05
     #define WEIGHT_PREDATION_P 0.07
     #define WEIGHT_CATCH_P 0
+    #define WEIGHT_FEED_P 0
+    #define WEIGHT_BREED_P 0
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), predators({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(R_DISTANCING_B, R_ALIGNMENT_B, R_COHESINON_B, R_PREDATION_B, R_FLED_B, R_CATCH_B, FOV_B, INSTINCT_B);
-    zoneprdt = new Zone(R_DISTANCING_P, R_ALIGNMENT_P, R_COHESINON_P, R_PREDATION_P, R_FLED_P, R_CATCH_P, FOV_P, INSTINCT_P);
+    zoneptr = new Zone(R_DISTANCING_B, R_ALIGNMENT_B, R_COHESINON_B, R_PREDATION_B, R_FLED_B, R_CATCH_B, R_FEED_B, R_BREED_B, FOV_B, INSTINCT_B);
+    zoneprdt = new Zone(R_DISTANCING_P, R_ALIGNMENT_P, R_COHESINON_P, R_PREDATION_P, R_FLED_P, R_CATCH_P, R_FEED_P, R_BREED_P, FOV_P, INSTINCT_P);
+    zonef = new Zone(0,0,0,0,0,0,0,R_BREED_F,0,0);
 }
 
 // Lance la Simulation
@@ -65,19 +76,19 @@ void Simulation::run() {
     // Boucle principale
     while (true) {
         // Gestion des entrées clavier
-        int key = cv::waitKey(timeStep); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
+        int key = cv::waitKey(1); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
 
         // Parcourir tous les boids
         for (int i = 0; i < boids.size(); i++) {
-            std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, predators, envWidth, envHeight);
-            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING_B, WEIGHT_ALIGNMENT_B, WEIGHT_COHESION_B, WEIGHT_FLED_B, WEIGHT_PREDATION_B, WEIGHT_CATCH_B, envWidth, envHeight);
+            std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, predators, foods, envWidth, envHeight);
+            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING_B, WEIGHT_ALIGNMENT_B, WEIGHT_COHESION_B, WEIGHT_FLED_B, WEIGHT_PREDATION_B, WEIGHT_CATCH_B, WEIGHT_FEED_B, WEIGHT_BREED_B, envWidth, envHeight);
         if (boids[i]->getCurrentInteraction() == Interaction::CATCH) {        // disparition si attrapé
             vPose boidPose = boids[i]->getPose();
             removeThisBoid(boids[i]);
-            addPredator(boidPose, SPEED_P, ANG_V_B, LIFE_P);
+            addPredator(boidPose, SPEED_P, ANG_V_P, LIFE_P);
             break;
         } else {
             if (boids[i]->getCurrentInteraction() == Interaction::FLED) {     // fuite plus rapide
@@ -91,8 +102,8 @@ void Simulation::run() {
         }
         // Parcourir tous les predators
         for (int i = 0; i < predators.size(); i++) {
-            std::vector<std::vector<Boid*>> neighbors = zoneprdt->getNearBoids(predators[i], boids, predators, envWidth, envHeight);
-            predators[i]->applyRules(neighbors, WEIGHT_DISTANCING_P, WEIGHT_ALIGNMENT_P, WEIGHT_COHESION_P, WEIGHT_FLED_P, WEIGHT_PREDATION_P, WEIGHT_CATCH_P, envWidth, envHeight);
+            std::vector<std::vector<Boid*>> neighbors = zoneprdt->getNearBoids(predators[i], boids, predators, foods, envWidth, envHeight);
+            predators[i]->applyRules(neighbors, WEIGHT_DISTANCING_P, WEIGHT_ALIGNMENT_P, WEIGHT_COHESION_P, WEIGHT_FLED_P, WEIGHT_PREDATION_P, WEIGHT_CATCH_P, WEIGHT_FEED_P, WEIGHT_BREED_P, envWidth, envHeight);
             if (predators[i]->getLifeTime() <= 0) {     // supprimer le predator si sa vie est fini
                 vPose predatorPose = predators[i]->getPose();
                 removeThisPredator(predators[i]);
@@ -103,6 +114,17 @@ void Simulation::run() {
             predators[i]->setLifeTime(predators[i]->getLifeTime() - 1);
             }
         }
+        // Parcourir tous les foods
+         for (int i = 0; i < foods.size(); i++) {
+            std::vector<std::vector<Boid*>> neighbors = zonef->getNearBoids(foods[i], boids, predators, foods, envWidth, envHeight);
+            foods[i]->applyRules(neighbors,0,0,0,0,0,0,0,0, envWidth, envHeight);
+            if (foods[i]->getCurrentInteraction() == Interaction::BREED) {
+                vPose foodPose = foods[i]->getPose();
+                removeThisFood(foods[i]);
+                addBoid(foodPose, SPEED_B, ANG_V_B, LIFE_B);
+                break;
+            }
+         }
         updateDisplay();
     }
 }
@@ -244,6 +266,10 @@ void Simulation::reset() {
     delete predator;
     }
     predators.clear();
+    for (Boid* food : foods) {
+    delete food;
+    }
+    foods.clear();
 }
 
 // Méthode pour basculer l'état de pause
@@ -295,27 +321,27 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
         case Interaction::COHESION:
             color = cv::Scalar(227, 0, 0); // Bleu
             break;
+        case Interaction::FEED:
+            color = cv::Scalar(128, 128, 0); // Bleu
+            break;
         case Interaction::NONE:
             color =cv::Scalar(127,127,127); // Gris
             break;
     }
 
-    // Dessiner le boid sous forme de triangle isocèle
+    // Dessiner une ligne
     vPose pose = boid->getPose();
     double x = pose.x;
     double y = pose.y;
-    double size = 5.0;         // Taille globale du triangle
-    double angle = pose.theta; // Orientation du boid en radians
+    double size = 8;             // Taille 
+    double angle = pose.theta;   // Orientation en radians
 
-    // Calcul et dessin en une "pseudo-ligne"
-    cv::fillPoly(
+    cv::line(
         image,
-        {std::vector<cv::Point>{
-            cv::Point(x + size * cos(angle), y + size * sin(angle)),                       // Sommet avant (pointe)
-            cv::Point(x + size * cos(angle + CV_PI * 3 / 4), y + size * sin(angle + CV_PI * 3 / 4)), // Coin gauche
-            cv::Point(x + size * cos(angle - CV_PI * 3 / 4), y + size * sin(angle - CV_PI * 3 / 4))  // Coin droit
-        }},
-        color
+        cv::Point(x, y), // Origine
+        cv::Point(x + size * cos(angle), y + size * sin(angle)), // Direction
+        color,
+        1 // Épaisseur
     );
 }
 
@@ -337,61 +363,21 @@ void Simulation::displayPredator(cv::Mat& image, const Boid* predator) {
             color = cv::Scalar(127, 127, 127); // Gris
             break;
     }
-
-    // Dessiner le boid sous forme de triangle isocèle
+    // Dessiner une ligne
     vPose pose = predator->getPose();
     double x = pose.x;
     double y = pose.y;
-    double size = 10;         // Taille globale du triangle
-    double angle = pose.theta; // Orientation du boid en radians
+    double size = 10;            // Taille 
+    double angle = pose.theta;   // Orientation en radians
 
-//  // Créer une variable statique pour stocker les positions historiques
-//  static std::map<const Boid*, std::vector<cv::Point>> predatorTrails;
+    cv::line(
+        image,
+        cv::Point(x, y), // Origine
+        cv::Point(x + size * cos(angle), y + size * sin(angle)), // Direction
+        color,
+        2 // Épaisseur
+    );
 
-// // Paramètres
-// const double trailMaxLength = 15;  // Nombre maximum de positions stockées
-// const double maxTrailAge = 1.0;    // Durée de vie d'un point en secondes
-// const double timeStepIncrement = 0.05; // Incrément d'âge par appel
-
-// // Récupérer ou créer la traînée pour le boid actuel
-// auto& trail = predatorTrails[predator];
-
-// // Ajouter la position actuelle si elle est différente de la précédente
-// if (trail.empty() || cv::norm(trail.back() - cv::Point(x, y)) > 2.0) {
-//     trail.push_back(cv::Point(x, y)); // Nouveau point
-// }
-
-// // Supprimer les anciens points si nécessaire
-// if (trail.size() > trailMaxLength) {
-//     trail.erase(trail.begin());
-// }
-
-// // Dessiner un trait à chaque ancienne position
-// for (size_t i = 0; i < trail.size(); ++i) {
-//     // Calculer la couleur basée sur l'âge du point
-//     double ageFactor = std::min(1.0, (double)i / trailMaxLength);
-//     cv::Scalar fadedColor = cv::Scalar(
-//         std::max(0.0, color[0] - 150 * ageFactor), // Rouge
-//         std::max(0.0, color[1] - 150 * ageFactor), // Vert
-//         std::max(0.0, color[2] - 150 * ageFactor), // Bleu
-//         255                                      // Alpha (opacité)
-//     );
-
-//     // Dessiner un petit trait (ligne d'un pixel de long) à cet emplacement
-//     cv::line(image, trail[i], trail[i], fadedColor, 1);
-// }
-
-    // Dessiner le boid sous forme de triangle isocèle
-    cv::fillPoly(
-    image,
-    {std::vector<cv::Point>{
-        cv::Point(x + size * cos(angle), y + size * sin(angle)),// Sommet avant (pointe)
-        cv::Point(x + size * 0.7 * cos(angle + CV_PI * 3 / 4), y + size * 0.7 * sin(angle + CV_PI * 3 / 4)), // Coin arrière gauche
-        cv::Point(x + size * 0.3 * cos(angle + CV_PI), y + size * 0.3 * sin(angle + CV_PI)), // Pointe arrière
-        cv::Point(x + size * 0.7 * cos(angle - CV_PI * 3 / 4), y + size * 0.7 * sin(angle - CV_PI * 3 / 4))  // Coin arrière droit
-    }},
-    color
-);
 }
 
 // Affiche un élément de nourriture sous forme de petit cercle blanc
@@ -400,7 +386,7 @@ void Simulation::displayFood(cv::Mat& image, const Boid* food) {
     vPose pose = food->getPose();
     double x = pose.x;
     double y = pose.y;
-    double radius = 5.0; // Rayon du cercle représentant la nourriture
+    double radius = 2.0; // Rayon du cercle représentant la nourriture
 
     // Couleur blanche pour représenter la nourriture
     cv::Scalar color(255, 255, 255); // Blanc (BGR)

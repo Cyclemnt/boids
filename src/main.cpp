@@ -2,7 +2,7 @@
 #include "../include/simulation.hpp"
 
 int main() {
-    Simulation sim(1920, 1080, TIMESTEP);
+    Simulation sim(1920/1, 1080/1, TIMESTEP);
 
     sim.run();
     

@@ -30,7 +30,7 @@ namespace Types
         }
     };
 
-    enum class Interaction { CATCH, DISTANCING, FLED, ALIGNMENT, PREDATION, COHESION, NONE };
+    enum class Interaction { BREED, CATCH, DISTANCING, FLED, ALIGNMENT, FEED, PREDATION, COHESION, NONE };
 
     // Modulo customisé
     inline double customMod(double a, double n) {return fmod(fmod(a, n) + n, n);}

@@ -44,7 +44,7 @@ void Boid::move(int envWidth, int envHeight) {
 }
 
 // Méthode pour modifier l'orientation du boid en fonction des voisins
-void Boid::applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch, int envWidth, int envHeight) {
+void Boid::applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDistancing, double weightAlignment, double weightCohesion, double weightFeld, double weightPredation, double weightCatch, double weightFeed, double weightBreed, int envWidth, int envHeight) {
 
     // NONE par défaut
     currentInteraction = Interaction::NONE;
@@ -89,6 +89,28 @@ void Boid::applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDi
         predationY = predationY / neighbors[4].size();
         currentInteraction = Interaction::PREDATION;
     }
+    // FEED
+    double feedX = 0, feedY = 0;
+    if (!neighbors[6].empty()) {
+        double minDistance = std::numeric_limits<double>::infinity();
+        const Boid* closestFood = nullptr;
+
+        for (const Boid* neighbor : neighbors[6]) {
+            double dx = neighbor->getPose().x - pose.x;
+            double dy = neighbor->getPose().y - pose.y;
+            if (fabs(dx) > (0.5 * envWidth)) dx -= copysign(envWidth, dx);
+            if (fabs(dy) > (0.5 * envHeight)) dy -= copysign(envHeight, dy);
+            double distance = sqrt(dx * dx + dy * dy);
+
+            // Mettre à jour si on trouve un food plus proche
+            if (distance < minDistance) {
+                minDistance = distance;
+                feedX = dx;
+                feedY = dy;
+            }
+        }
+        currentInteraction = Interaction::FEED;
+    }
     // DISTANCING
     double distX = 0, distY = 0;
     if (!neighbors[0].empty()) {
@@ -123,12 +145,16 @@ void Boid::applyRules(std::vector<std::vector<Boid*>> neighbors, double weightDi
     if (!neighbors[5].empty()) {
         currentInteraction = Interaction::CATCH;
     }
+    // BREED
+    if (!neighbors[7].empty()) {
+        currentInteraction = Interaction::BREED;
+    }
 
     // S'il y a des voisins, changer de direction
     if (currentInteraction != Interaction::NONE) {
         // Combiner les vecteurs
-        double newDirX = weightDistancing * distX + weightAlignment * alignX + weightCohesion * cohesionX + weightFeld * fledX + weightPredation * predationX;
-        double newDirY = weightDistancing * distY + weightAlignment * alignY + weightCohesion * cohesionY + weightFeld * fledY + weightPredation * predationY;
+        double newDirX = weightDistancing * distX + weightAlignment * alignX + weightCohesion * cohesionX + weightFeld * fledX + weightPredation * predationX + feedX * weightFeed;
+        double newDirY = weightDistancing * distY + weightAlignment * alignY + weightCohesion * cohesionY + weightFeld * fledY + weightPredation * predationY + feedY * weightFeed;
 
         // Calculer la nouvelle orientation
         double newOrientation = atan2(newDirY, newDirX);

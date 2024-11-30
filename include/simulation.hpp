@@ -13,6 +13,7 @@ class Simulation {
         std::vector<Boid*> foods;
         Zone* zoneptr;
         Zone* zoneprdt;
+        Zone* zonef;
         bool paused;
     public :
         // Constructeur
