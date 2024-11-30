@@ -34,7 +34,7 @@ set(CUDA_SOURCES
 )
 
 set(HEADERS
-    include/types.hpp
+    include/constants.hpp
     include/simulation.hpp
     include/gpu_utils.cuh
 )
