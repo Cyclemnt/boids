@@ -10,6 +10,14 @@ Simulation::Simulation()
 
 // Lance la Simulation
 void Simulation::run() {
+    // Calculer les dimensions des cellules et leur nombre
+    const float inverseCellWidth = 1.0 / findMinDivisor(ENV_WIDTH, R_COHESION);
+    const float inverseCellHeight = 1.0 / findMinDivisor(ENV_HEIGHT, R_COHESION);
+    const int numCellWidth = ENV_WIDTH * inverseCellWidth;
+    const int numCellHeight = ENV_HEIGHT * inverseCellHeight;
+    const int numCells = numCellWidth * numCellHeight;
+    cellCount.resize(numCells + 1);
+
     omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles (pour l'affichage)
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(NUM_BOIDS);
@@ -17,23 +25,22 @@ void Simulation::run() {
     // Allouer la mémoire dans la GPU et copier les données
     allocateBoidDataOnGPU();
     copyBoidDataToGPU();
-double temps = 0;
-    for (int i = 0; i < 2000; ++i) {
+//double temps = 0;
+    for (int i = 0; i < 1000; ++i) {
         int key = cv::waitKey(1); // Gestion des entrées clavier
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         if (paused) continue; // Si en pause, ne pas mettre à jour la simulation
-auto debut = std::chrono::high_resolution_clock::now();
+//auto debut = std::chrono::high_resolution_clock::now();
         // Appeler le kernel CUDA
-        updateBoidsCUDA(d_x, d_y, d_theta, d_interaction, x.size());
-auto fin = std::chrono::high_resolution_clock::now();
-std::chrono::duration<double, std::milli> duree = fin - debut;
-std::cout << "Temps d'exécution : " << duree.count() << " ms" << std::endl;
-temps += duree.count();
+        updateBoidsCUDA(d_x, d_y, d_theta, d_interaction, x.size(), d_cellCount, d_particleMap, numCells, numCellWidth, numCellHeight, inverseCellWidth, inverseCellHeight);
+//auto fin = std::chrono::high_resolution_clock::now();
+//std::chrono::duration<double, std::milli> duree = fin - debut;
+//temps += duree.count();
         // Récupérer les tableaux dans le CPU et afficher
         copyBoidDataToCPU();
         updateDisplay();
     }
-std::cout << "avg " << temps / 2000.0 << std::endl;
+//std::cout << "Temps d'exécution moyen : " << temps / 1000.0 << std::endl;
 
     freeBoidDataOnGPU();
 }
@@ -55,6 +62,14 @@ void Simulation::initializeBoidsRandomly(int numBoids) {
         float newTheta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
         addBoid(newX, newY, newTheta);
     }
+}
+
+// Fonction pour trouver le diviseur min d'un nombre supérieur ou égal à un certain seuil
+int Simulation::findMinDivisor(int number, int minSize) {
+    for (int i = minSize; i <= number; ++i) {
+        if (number % i == 0) return i;
+    } // Voir si arrondi possible
+    return -1;
 }
 
 // Met à jour tous les boids et affiche la simulation
@@ -101,6 +116,7 @@ inline void Simulation::addBoid(float x_, float y_, float theta_) {
     y.push_back(y_);
     theta.push_back(theta_);
     interaction.push_back(0);
+    particleMap.push_back(0);
 }
 
 // Méthode pour supprimer un boid de la simulation
@@ -109,6 +125,7 @@ void Simulation::removeBoid(int id) {
     y.erase(y.begin() + id);
     theta.erase(theta.begin() + id);
     interaction.erase(interaction.begin() + id);
+    particleMap.erase(particleMap.begin()); // Peu importe la case supprimée
 }
 
 // Réinitialiser la simulation
@@ -156,14 +173,17 @@ void Simulation::togglePause() {
 //FONCTIONS UTILES CUDA
 // Alloue la mémoire GPU pour les données des Boids
 void Simulation::allocateBoidDataOnGPU() {
-    size_t dataSize = x.size() * sizeof(float);
-    size_t interactionSize = x.size() * sizeof(int);
+    size_t dataSizef = x.size() * sizeof(float);
+    size_t dataSizei = x.size() * sizeof(int);
+    size_t cellCountSize = cellCount.size() * sizeof(int);
 
     // Allocation pour chaque vecteur
-    cudaMalloc(&d_x, dataSize);
-    cudaMalloc(&d_y, dataSize);
-    cudaMalloc(&d_theta, dataSize);
-    cudaMalloc(&d_interaction, interactionSize);
+    cudaMalloc(&d_x, dataSizef);
+    cudaMalloc(&d_y, dataSizef);
+    cudaMalloc(&d_theta, dataSizef);
+    cudaMalloc(&d_interaction, dataSizei);
+    cudaMalloc(&d_cellCount, cellCountSize);
+    cudaMalloc(&d_particleMap, dataSizei);
 }
 
 // Libère la mémoire GPU
@@ -171,29 +191,29 @@ void Simulation::freeBoidDataOnGPU() {
     cudaFree(d_x);
     cudaFree(d_y);
     cudaFree(d_theta);
-    cudaFree(&d_interaction);
+    cudaFree(d_interaction);
+    cudaFree(d_cellCount);
+    cudaFree(d_particleMap);
 }
 
 // Transfère les données CPU -> GPU
 void Simulation::copyBoidDataToGPU() {
     size_t dataSize = x.size() * sizeof(float);
-    size_t interactionSize = x.size() * sizeof(int);
 
     cudaMemcpy(d_x, x.data(), dataSize, cudaMemcpyHostToDevice);
     cudaMemcpy(d_y, y.data(), dataSize, cudaMemcpyHostToDevice);
     cudaMemcpy(d_theta, theta.data(), dataSize, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_interaction, interaction.data(), interactionSize, cudaMemcpyHostToDevice);
 }
 
 // Transfère les données GPU -> CPU
 void Simulation::copyBoidDataToCPU() {
-    size_t dataSize = x.size() * sizeof(float);
-    size_t interactionSize = x.size() * sizeof(int);
+    size_t dataSizef = x.size() * sizeof(float);
+    size_t dataSizei = x.size() * sizeof(int);
 
-    cudaMemcpy(x.data(), d_x, dataSize, cudaMemcpyDeviceToHost);
-    cudaMemcpy(y.data(), d_y, dataSize, cudaMemcpyDeviceToHost);
-    cudaMemcpy(theta.data(), d_theta, dataSize, cudaMemcpyDeviceToHost);
-    cudaMemcpy(interaction.data(), d_interaction, interactionSize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(x.data(), d_x, dataSizef, cudaMemcpyDeviceToHost);
+    cudaMemcpy(y.data(), d_y, dataSizef, cudaMemcpyDeviceToHost);
+    cudaMemcpy(theta.data(), d_theta, dataSizef, cudaMemcpyDeviceToHost);
+    cudaMemcpy(interaction.data(), d_interaction, dataSizei, cudaMemcpyDeviceToHost);
 }
 
 // Réallocation si la taille change
