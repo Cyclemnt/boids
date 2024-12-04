@@ -76,7 +76,7 @@ void Simulation::run() {
     // Boucle principale
     while (true) {
         // Gestion des entrées clavier
-        int key = cv::waitKey(1); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
+        int key = cv::waitKey(timeStep); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
@@ -329,19 +329,22 @@ void Simulation::displayBoid(cv::Mat& image, const Boid* boid) {
             break;
     }
 
-    // Dessiner une ligne
+    // Dessiner le boid sous forme de triangle isocèle
     vPose pose = boid->getPose();
     double x = pose.x;
     double y = pose.y;
-    double size = 8;             // Taille 
-    double angle = pose.theta;   // Orientation en radians
+    double size = 5.0;         // Taille globale du triangle
+    double angle = pose.theta; // Orientation du boid en radians
 
-    cv::line(
+    // Calcul et dessin en une "pseudo-ligne"
+    cv::fillPoly(
         image,
-        cv::Point(x, y), // Origine
-        cv::Point(x + size * cos(angle), y + size * sin(angle)), // Direction
-        color,
-        1 // Épaisseur
+        {std::vector<cv::Point>{
+            cv::Point(x + size * cos(angle), y + size * sin(angle)),                       // Sommet avant (pointe)
+            cv::Point(x + size * cos(angle + CV_PI * 3 / 4), y + size * sin(angle + CV_PI * 3 / 4)), // Coin gauche
+            cv::Point(x + size * cos(angle - CV_PI * 3 / 4), y + size * sin(angle - CV_PI * 3 / 4))  // Coin droit
+        }},
+        color
     );
 }
 
@@ -363,19 +366,22 @@ void Simulation::displayPredator(cv::Mat& image, const Boid* predator) {
             color = cv::Scalar(127, 127, 127); // Gris
             break;
     }
-    // Dessiner une ligne
+    // Dessiner le predator sous forme de triangle isocèle
     vPose pose = predator->getPose();
     double x = pose.x;
     double y = pose.y;
-    double size = 10;            // Taille 
-    double angle = pose.theta;   // Orientation en radians
+    double size = 9.0;         // Taille globale du triangle
+    double angle = pose.theta; // Orientation du boid en radians
 
-    cv::line(
+    // Calcul et dessin en une "pseudo-ligne"
+    cv::fillPoly(
         image,
-        cv::Point(x, y), // Origine
-        cv::Point(x + size * cos(angle), y + size * sin(angle)), // Direction
-        color,
-        2 // Épaisseur
+        {std::vector<cv::Point>{
+            cv::Point(x + size * cos(angle), y + size * sin(angle)),                       // Sommet avant (pointe)
+            cv::Point(x + size * cos(angle + CV_PI * 3 / 4), y + size * sin(angle + CV_PI * 3 / 4)), // Coin gauche
+            cv::Point(x + size * cos(angle - CV_PI * 3 / 4), y + size * sin(angle - CV_PI * 3 / 4))  // Coin droit
+        }},
+        color
     );
 
 }
