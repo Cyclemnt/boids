@@ -1,7 +1,7 @@
 #include "../include/simulation.hpp"
 #include "../include/gpu_utils.cuh"
 #include "../include/constants.hpp"
-#include <omp.h>
+#include <opencv2/opencv.hpp>
 #include <random>
 #include <chrono>
 
@@ -18,29 +18,29 @@ void Simulation::run() {
     const int numCells = numCellWidth * numCellHeight;
     cellCount.resize(numCells + 1);
 
-    omp_set_num_threads(omp_get_max_threads()); // Utilise tous les threads disponibles (pour l'affichage)
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(NUM_BOIDS);
     
     // Allouer la mémoire dans la GPU et copier les données
     allocateBoidDataOnGPU();
     copyBoidDataToGPU();
-//double temps = 0;
-    for (int i = 0; i < 1000; ++i) {
+double temps = 0;
+    for (int i = 0; i < 3000; ++i) {
         int key = cv::waitKey(1); // Gestion des entrées clavier
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         if (paused) continue; // Si en pause, ne pas mettre à jour la simulation
-//auto debut = std::chrono::high_resolution_clock::now();
+
         // Appeler le kernel CUDA
-        updateBoidsCUDA(d_x, d_y, d_theta, d_interaction, x.size(), d_cellCount, d_particleMap, numCells, numCellWidth, numCellHeight, inverseCellWidth, inverseCellHeight);
+        updateBoidsCUDA(d_x, d_y, d_theta, d_interaction, x.size(), d_cellCount, d_particleMap, numCells, numCellWidth, numCellHeight, inverseCellWidth, inverseCellHeight, d_image);
+
+        // Afficher l'image pré-calculée
+//auto debut = std::chrono::high_resolution_clock::now();
+        updateDisplay();
 //auto fin = std::chrono::high_resolution_clock::now();
 //std::chrono::duration<double, std::milli> duree = fin - debut;
 //temps += duree.count();
-        // Récupérer les tableaux dans le CPU et afficher
-        copyBoidDataToCPU();
-        updateDisplay();
     }
-//std::cout << "Temps d'exécution moyen : " << temps / 1000.0 << std::endl;
+//std::cout << "Temps d'exécution moyen : " << temps / 3000.0 << std::endl;
 
     freeBoidDataOnGPU();
 }
@@ -54,12 +54,11 @@ void Simulation::initializeBoidsRandomly(int numBoids) {
     std::uniform_real_distribution<> yDist(0, ENV_HEIGHT);
     std::uniform_real_distribution<> thetaDist(0, 2 * M_PIf);
     std::uniform_real_distribution<> offsetDist(0, rand());
-    float offsetTheta = fmodf(offsetDist(gen), 2 * M_PIf);
     
     for (int i = 0; i < numBoids; ++i) {
         float newX = xDist(gen);  // Position x aléatoire
         float newY = yDist(gen);  // Position y aléatoire
-        float newTheta = thetaDist(gen) + offsetTheta;  // Orientation aléatoire
+        float newTheta = thetaDist(gen);  // Orientation aléatoire
         addBoid(newX, newY, newTheta);
     }
 }
@@ -72,41 +71,14 @@ int Simulation::findMinDivisor(int number, int minSize) {
     return -1;
 }
 
-// Met à jour tous les boids et affiche la simulation
+// Affiche la simulation
 void Simulation::updateDisplay() const {
-    // Effacer l'image précédente
-    cv::Mat image = cv::Mat::zeros(ENV_HEIGHT, ENV_WIDTH, CV_8UC3);
-    
-    // Mettre à jour chaque boid
-    #pragma omp parallel for
-    for (int id = 0; id < x.size(); ++id) {
-        displayBoid(image, id); // Afficher le boid dans l'image
-    }
-    
-    // Afficher l'image dans une fenêtre OpenCV
+    cv::Mat image(ENV_HEIGHT, ENV_WIDTH, CV_8UC3);
+    cudaMemcpy(image.data, d_image, ENV_WIDTH * ENV_HEIGHT * 3, cudaMemcpyDeviceToHost);
+
     cv::namedWindow("Simulation", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Simulation", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
     cv::imshow("Simulation", image);
-}
-
-// Affiche chaque boid avec une couleur selon son interaction
-inline void Simulation::displayBoid(cv::Mat& image, int id) const {
-    // Déterminer la couleur en fonction de l'interaction
-    cv::Scalar color;
-    int currentInteraction = interaction[id];
-    switch (currentInteraction) {
-        case 1: color = cv::Scalar(0, 0, 255);   break;
-        case 2: color = cv::Scalar(0, 255, 0);   break;
-        case 3: color = cv::Scalar(255, 0, 0);   break;
-        case 0: color = cv::Scalar(127, 127, 0); break;
-    }
-
-    // Dessiner le boid
-    float posX = x[id];
-    float posY = y[id];
-    float angle = theta[id];
-    // Calcul et dessin en une ligne
-    cv::line(image, cv::Point(posX, posY), cv::Point(posX + cosf(angle), posY + sinf(angle)), color, 1, 8, 0);
 }
 
 // Méthode pour ajouter un boid à la simulation
@@ -184,6 +156,7 @@ void Simulation::allocateBoidDataOnGPU() {
     cudaMalloc(&d_interaction, dataSizei);
     cudaMalloc(&d_cellCount, cellCountSize);
     cudaMalloc(&d_particleMap, dataSizei);
+    cudaMalloc(&d_image, ENV_WIDTH * ENV_HEIGHT * 3 * sizeof(unsigned char));  // 3 canaux pour RGB
 }
 
 // Libère la mémoire GPU
@@ -194,6 +167,7 @@ void Simulation::freeBoidDataOnGPU() {
     cudaFree(d_interaction);
     cudaFree(d_cellCount);
     cudaFree(d_particleMap);
+    cudaFree(d_image);
 }
 
 // Transfère les données CPU -> GPU

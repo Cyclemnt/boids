@@ -1,7 +1,7 @@
 #ifndef SIMULATION_HPP
 #define SIMULATION_HPP
 
-#include <opencv2/opencv.hpp>
+#include <vector>
 
 class Simulation {
     private : 
@@ -21,6 +21,7 @@ class Simulation {
         int* d_interaction;
         int* d_cellCount;
         int* d_particleMap;
+        unsigned char* d_image;
         // Divers
         bool paused; // état de la simulation (pause/play)
     public :
@@ -28,28 +29,27 @@ class Simulation {
         Simulation();
 
         void run(); // Lance la simulation
-        void initializeBoidsRandomly(int numBoids); // Méthode pour initialiser les boids de manière aléatoire
-        int findMinDivisor(int number, int minSize); // Fonction pour trouver le diviseur min d'un nombre supérieur ou égal à un certain seuil
+        void initializeBoidsRandomly(int numBoids); // Initialiser les boids de manière aléatoire
+        int findMinDivisor(int number, int minSize); // Trouver le diviseur min d'un nombre supérieur ou égal à un certain seuil
 
         // AFFICHAGE
-        void updateDisplay() const; // Met à jour tous les boids et affiche la simulation
-        inline void displayBoid(cv::Mat& image, int id) const; // Affiche chaque boid avec une couleur selon son interaction
+        void updateDisplay() const; // Afficher la simulation
 
         // CONTRÔLE BOIDS
-        inline void addBoid(float x_, float y_, float theta_); // Méthode pour ajouter un boid à la simulation
-        void removeBoid(int id); // Méthode pour supprimer un boid de la simulation
+        inline void addBoid(float x_, float y_, float theta_); // Ajouter un boid à la simulation
+        void removeBoid(int id); // Supprimer un boid de la simulation
         void reset(); // Réinitialiser la simulation
 
         // CONTRÔLE SIMULATION
-        void handleKeyPress(int key); // Méthode pour gérer les touches
-        void togglePause(); // Méthode pour gérer la pause de la simulation
+        void handleKeyPress(int key); // Gérer les touches
+        void togglePause(); // Gérer la pause de la simulation
 
         // FONCTIONS UTILES CUDA
-        void allocateBoidDataOnGPU(); // Fonction pour allouer la mémoire GPU
-        void freeBoidDataOnGPU(); // Fonction pour libérer la mémoire GPU
-        void copyBoidDataToGPU(); // Fonction pour transférer les données CPU -> GPU
-        void copyBoidDataToCPU(); // Fonction pour transférer les données GPU -> CPU
-        inline void reallocate(); // Fonction pour réallouer si la taille change
+        void allocateBoidDataOnGPU(); // Allouer la mémoire GPU
+        void freeBoidDataOnGPU(); // Libérer la mémoire GPU
+        void copyBoidDataToGPU(); // Transférer les données CPU -> GPU
+        void copyBoidDataToCPU(); // Transférer les données GPU -> CPU
+        inline void reallocate(); // Réallouer si la taille change
 
         ~Simulation();
 };

@@ -10,10 +10,11 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interac
 void updateBoidsCUDA(
     float* d_x, float* d_y, float* d_theta, int* d_interaction, const int numBoids,
     int* d_cellCount, int* d_particleMap,
-    const int numCells, const int numCellsWidth, const int numcellsHeight, const float inverseCellWidth, const float inverseCellHeight);
+    const int numCells, const int numCellsWidth, const int numcellsHeight, const float inverseCellWidth, const float inverseCellHeight,
+    unsigned char* d_image);
 
 __global__ void fillCellCount(float* x, float* y, int* cellCount, const int numBoids, const int numCellsWidth, const int numCells, const float inverseCellWidth, const float inverseCellHeight);
 __global__ void fillParticleMap(float* x, float* y, int* cellCount, int* particleMap, const int numBoids, const int numCellsWidth, const float inverseCellWidth, const float inverseCellHeight);
-
+__global__ void renderBoidsKernel(float* x, float* y, int* interaction, unsigned char* image, int numBoids, int envWidth);
 
 #endif // GPU_UTILS_CUH

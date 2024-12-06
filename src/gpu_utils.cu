@@ -3,7 +3,6 @@
 #include <cuda_runtime.h>
 #include <thrust/device_ptr.h> // Pour partial sum
 #include <thrust/scan.h> // Pour partial sum
-#include <iostream>
 
 // Kernel
 __global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interaction, int* cellCount, int* particleMap, const int numBoids, const int numCellsWidth, const int numCellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
@@ -43,62 +42,59 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interac
             if (neighborY < 0) neighborY += numCellsHeight;
             if (neighborY >= numCellsHeight) neighborY -= numCellsHeight;
 
-            // Vérifie que la cellule est valide
-            if (neighborX >= 0 && neighborX < numCellsWidth && neighborY >= 0 && neighborY < numCellsHeight) {
-                int neighborIndex = neighborX + neighborY * numCellsWidth;
+            int neighborIndex = neighborX + neighborY * numCellsWidth;
 
-                // Parcourir les boids dans cette cellule
-                for (int i = cellCount[neighborIndex]; i < cellCount[neighborIndex + 1]; ++i) {
-                    int neighborBoidIdx = particleMap[i];
+            // Parcourir les boids dans cette cellule
+            for (int i = cellCount[neighborIndex]; i < cellCount[neighborIndex + 1]; ++i) {
+                int neighborBoidIdx = particleMap[i];
 
-                    // Évite le boid courant
-                    if (neighborBoidIdx == idx) continue;
+                // Évite le boid courant
+                if (neighborBoidIdx == idx) continue;
 
-                    // Calculer la distance
-                    float dx = x[neighborBoidIdx] - posX;
-                    float dy = y[neighborBoidIdx] - posY;
-                    
-                    // Calculer la distance torique
-                    if (dx > halvedEnvWidth) dx -= ENV_WIDTH;
-                    else if (dx < -halvedEnvWidth) dx += ENV_WIDTH;
-                    if (dy > halvedEnvHeight) dy -= ENV_HEIGHT;
-                    else if (dy < -halvedEnvHeight) dy += ENV_HEIGHT;
+                // Calculer la distance
+                float dx = x[neighborBoidIdx] - posX;
+                float dy = y[neighborBoidIdx] - posY;
+                
+                // Calculer la distance torique
+                if (dx > halvedEnvWidth) dx -= ENV_WIDTH;
+                else if (dx < -halvedEnvWidth) dx += ENV_WIDTH;
+                if (dy > halvedEnvHeight) dy -= ENV_HEIGHT;
+                else if (dy < -halvedEnvHeight) dy += ENV_HEIGHT;
 
-                    // Calculer la distance euclidienne avec les distances minimales en x et y
-                    float distanceSquared = (dx * dx) + (dy * dy);
+                // Calculer la distance euclidienne avec les distances minimales en x et y
+                float distanceSquared = (dx * dx) + (dy * dy);
 
-                    if (distanceSquared > rCohesionSquared) continue; // éviter de faire les calculs suivants pour rien
+                if (distanceSquared > rCohesionSquared) continue; // éviter de faire les calculs suivants pour rien
 
-                    // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe x
-                    float angleToNeighbor = atan2f(dy, dx);
-                    // Calculer la différence angulaire par rapport à l'orientation du boid
-                    float angleDifference = angleToNeighbor - angle;
-                    if (angleDifference > M_PIf) angleDifference -= twoPif;
-                    else if (angleDifference < -M_PIf) angleDifference += twoPif;
+                // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe x
+                float angleToNeighbor = atan2f(dy, dx);
+                // Calculer la différence angulaire par rapport à l'orientation du boid
+                float angleDifference = angleToNeighbor - angle;
+                if (angleDifference > M_PIf) angleDifference -= twoPif;
+                else if (angleDifference < -M_PIf) angleDifference += twoPif;
 
 
-                    bool isWithinFOV = fabsf(angleDifference) <= (halvedFOV);
+                bool isWithinFOV = fabsf(angleDifference) <= (halvedFOV);
 
-                    if (!isWithinFOV) continue;
-                    
-                    // Règle 1 : Distanciation
-                    if (distanceSquared < rDistancingSquared) {
-                        distX -= dx;
-                        distY -= dy;
-                        distCount++;
-                    }
-                    // Règle 2 : Alignement
-                    else if (distanceSquared < rAlignmentSquared) {
-                        alignX += __cosf(theta[neighborBoidIdx]);
-                        alignY += __sinf(theta[neighborBoidIdx]);
-                        alignCount++;
-                    }
-                    // Règle 3 : Cohésion
-                    else if (distanceSquared < rCohesionSquared) {
-                        cohesionX += dx;
-                        cohesionY += dy;
-                        cohesionCount++;
-                    }
+                if (!isWithinFOV) continue;
+                
+                // Règle 1 : Distanciation
+                if (distanceSquared < rDistancingSquared) {
+                    distX -= dx;
+                    distY -= dy;
+                    distCount++;
+                }
+                // Règle 2 : Alignement
+                else if (distanceSquared < rAlignmentSquared) {
+                    alignX += __cosf(theta[neighborBoidIdx]);
+                    alignY += __sinf(theta[neighborBoidIdx]);
+                    alignCount++;
+                }
+                // Règle 3 : Cohésion
+                else if (distanceSquared < rCohesionSquared) {
+                    cohesionX += dx;
+                    cohesionY += dy;
+                    cohesionCount++;
                 }
             }
         }
@@ -148,13 +144,13 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interac
 void updateBoidsCUDA(
     float* d_x, float* d_y, float* d_theta, int* d_interaction, const int numBoids,
     int* d_cellCount, int* d_particleMap,
-    const int numCells, const int numCellsWidth, const int numcellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
+    const int numCells, const int numCellsWidth, const int numcellsHeight, const float inverseCellWidth, const float inverseCellHeight,
+    unsigned char* d_image) {
     // Définir le nombre de threads par bloc et de blocs
     int threadsPerBlock = 256;
     int blocksPerGrid = (numBoids + threadsPerBlock - 1) / threadsPerBlock;
-    //size_t sharedMemSize = 3 * threadsPerBlock * sizeof(float); // Pour x, y et theta
 
-    // Remplir cellCount
+    // Compter les boids
     cudaMemset(d_cellCount, 0, (numCells + 1) * sizeof(int));
     fillCellCount<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_cellCount, numBoids, numCellsWidth, numCells, inverseCellWidth, inverseCellHeight);
     cudaDeviceSynchronize();
@@ -167,10 +163,13 @@ void updateBoidsCUDA(
     fillParticleMap<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_cellCount, d_particleMap, numBoids, numCellsWidth, inverseCellWidth, inverseCellHeight);
     cudaDeviceSynchronize();
 
-    // Appeler le kernel
+    // Appeler le kernel principal
     updateBoidsKernel<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_theta, d_interaction, d_cellCount, d_particleMap, numBoids, numCellsWidth, numcellsHeight, inverseCellWidth, inverseCellHeight);
+    cudaDeviceSynchronize();
 
-    // Synchroniser pour s'assurer que le kernel est terminé
+    // Remplir le buffer d'image après l'update
+    cudaMemset(d_image, 0, ENV_WIDTH * ENV_HEIGHT * 3); // Nettoyage de l'image
+    renderBoidsKernel<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_interaction, d_image, numBoids, ENV_WIDTH);
     cudaDeviceSynchronize();
 }
 
@@ -183,11 +182,7 @@ __global__ void fillCellCount(float* x, float* y, int* cellCount, const int numB
     int cellY = floor(y[idx] * inverseCellHeight);
     int cellIndex = cellX + cellY * numCellsWidth;
 
-    if (cellIndex >= 0 && cellIndex < numCells) {
-        atomicAdd(&cellCount[cellIndex], 1);
-    } else {
-        printf("Invalid cell index for Boid %d: cellIndex = %d\n", idx, cellIndex);
-    }
+    atomicAdd(&cellCount[cellIndex], 1);
 }
 
 // Remplir particleMap
@@ -204,60 +199,25 @@ __global__ void fillParticleMap(float* x, float* y, int* cellCount, int* particl
     particleMap[mapIndex] = idx;
 }
 
+__global__ void renderBoidsKernel(float* x, float* y, int* interaction, unsigned char* image, int numBoids, int envWidth) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= numBoids) return;
 
-
-
-
-
-
-
-
-
-
-
-/*
-int cellCount[ENV_WIDTH * inverseCellWidth * ENV_HEIGHT * inverseCellHeight + 1] = {0, 0, 0,...}; // Stores the number of boids in each cell
-for (int i = 0; i < numBoids; ++i) {
-    int xi = floor(x[i] * inverseCellWidth);
-    int yi = floor(y[i] * inverseCellHeight);
-    cellCount[xi + yi * ENV_WIDTH * inverseCellWidth]++;
-}
-// Partial sum
-for (int i = 1; i < (ENV_WIDTH * inverseCellWidth * ENV_HEIGHT * inverseCellHeight); ++i) {
-    cellCount[i] += cellCount[i - 1];
-}
-// Fill in
-int cellStartIndex = cellCount;
-for (int i = 0; i < numBoids; ++i) {
-    int xi = floor(x[i] * inverseCellWidth);
-    int yi = floor(y[i] * inverseCellHeight);
-    int cellIndex = xi + yi * ENV_WIDTH * inverseCellWidth;
-
-    // Récupérer l'index dans le tableau de boids
-    int insertionIndex = --cellStartIndex[cellIndex]; // Décrémente d'abord puis utilise
-    particleMap[insertionIndex] = i; // `i` est l'indice du boid initial
-}
-
-// Les indices dans particleMap entre cellCount[i] et cellCount[i+1] correspondent aux boids de la cellule i
-
-// Dans le kernel calcul de distances
-for (int dy = -1; dy <= 1; ++dy) {
-    for (int dx = -1; dx <= 1; ++dx) {
-        int neighborX = xi + dx;
-        int neighborY = yi + dy;
-
-        // Vérifie que la cellule voisine est dans les limites
-        if (neighborX >= 0 && neighborX < numCellsWidth &&
-            neighborY >= 0 && neighborY < numCellsHeight) {
-
-            int neighborIndex = neighborX + neighborY * numCellsWidth;
-
-            // Parcourt les boids dans la cellule voisine
-            for (int j = cellCount[neighborIndex]; j < cellCount[neighborIndex + 1]; ++j) {
-                int boidIndex = particleMap[j];
-                // Traite ce boid (par exemple, calcule les interactions)
-            }
-        }
+    // Déterminer la couleur selon l'interaction
+    unsigned char r, g, b;
+    switch (interaction[idx]) {
+        case 1: r = 255; g = 0;   b = 0;   break;  // Rouge
+        case 2: r = 0;   g = 255; b = 0;   break;  // Vert
+        case 3: r = 0;   g = 0;   b = 255; break;  // Bleu
+        default: r = 127; g = 127; b = 0; break;   // Jaune
     }
-} // Calcul des interactions
-*/
+
+    // Position du boid
+    int pixelX = static_cast<int>(x[idx]);
+    int pixelY = static_cast<int>(y[idx]);
+
+    int pixelIndex = (pixelY * envWidth + pixelX) * 3;
+    image[pixelIndex]     = b;  // Blue
+    image[pixelIndex + 1] = g;  // Green
+    image[pixelIndex + 2] = r;  // Red
+}
