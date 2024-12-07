@@ -5,7 +5,7 @@
 #include <thrust/scan.h> // Pour partial sum
 
 // Kernel
-__global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interaction, int* cellCount, int* particleMap, const int numBoids, const int numCellsWidth, const int numCellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
+__global__ void updateBoidsKernel(float* x, float* y, float* theta, unsigned char* image, int* cellCount, int* particleMap, const int numBoids, const int numCellsWidth, const int numCellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= numBoids) return;
 
@@ -73,7 +73,6 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interac
                 if (angleDifference > M_PIf) angleDifference -= twoPif;
                 else if (angleDifference < -M_PIf) angleDifference += twoPif;
 
-
                 bool isWithinFOV = fabsf(angleDifference) <= (halvedFOV);
 
                 if (!isWithinFOV) continue;
@@ -101,11 +100,10 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interac
     }
 
     // Moyenne des vecteurs
-    interaction[idx] = 0;
-    if (cohesionCount > 0) { cohesionX /= cohesionCount; cohesionY /= cohesionCount; interaction[idx] = 3; }
-    if (alignCount > 0) { alignX /= alignCount; alignY /= alignCount; interaction[idx] = 2; }
-    if (distCount > 0) { distX /= distCount; distY /= distCount; interaction[idx] = 1; }
-
+    unsigned char r = 127, g = 127, b = 0;
+    if (cohesionCount > 0) { cohesionX /= cohesionCount; cohesionY /= cohesionCount; r = 0; g = 0; b = 255; }
+    if (alignCount > 0) { alignX /= alignCount; alignY /= alignCount; r = 0; g = 255; b = 0; }
+    if (distCount > 0) { distX /= distCount; distY /= distCount; r = 255; g = 0; b = 0; }
     
     if (alignCount != 0 || cohesionCount != 0 || distCount != 0) {
         // Combiner les vecteurs
@@ -138,14 +136,19 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, int* interac
     x[idx] = posX;
     y[idx] = posY;
     theta[idx] = angle;
+
+    int pixelIndex = (int(posY) * ENV_WIDTH + int(posX)) * 3;
+    image[pixelIndex]     = b;  // Blue
+    image[pixelIndex + 1] = g;  // Green
+    image[pixelIndex + 2] = r;  // Red
 }
 
 // Fonction d'encapsulation pour appeler le kernel
 void updateBoidsCUDA(
-    float* d_x, float* d_y, float* d_theta, int* d_interaction, const int numBoids,
+    float* d_x, float* d_y, float* d_theta, unsigned char* d_image, const int numBoids,
     int* d_cellCount, int* d_particleMap,
-    const int numCells, const int numCellsWidth, const int numcellsHeight, const float inverseCellWidth, const float inverseCellHeight,
-    unsigned char* d_image) {
+    const int numCells, const int numCellsWidth, const int numcellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
+    if (numBoids == 0) return;
     // Définir le nombre de threads par bloc et de blocs
     int threadsPerBlock = 256;
     int blocksPerGrid = (numBoids + threadsPerBlock - 1) / threadsPerBlock;
@@ -164,12 +167,8 @@ void updateBoidsCUDA(
     cudaDeviceSynchronize();
 
     // Appeler le kernel principal
-    updateBoidsKernel<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_theta, d_interaction, d_cellCount, d_particleMap, numBoids, numCellsWidth, numcellsHeight, inverseCellWidth, inverseCellHeight);
-    cudaDeviceSynchronize();
-
-    // Remplir le buffer d'image après l'update
     cudaMemset(d_image, 0, ENV_WIDTH * ENV_HEIGHT * 3); // Nettoyage de l'image
-    renderBoidsKernel<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_interaction, d_image, numBoids, ENV_WIDTH);
+    updateBoidsKernel<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_theta, d_image, d_cellCount, d_particleMap, numBoids, numCellsWidth, numcellsHeight, inverseCellWidth, inverseCellHeight);
     cudaDeviceSynchronize();
 }
 
@@ -197,27 +196,4 @@ __global__ void fillParticleMap(float* x, float* y, int* cellCount, int* particl
     // Atomic decrement to fill particleMap in correct order
     int mapIndex = atomicAdd(&cellCount[cellIndex], -1) - 1;
     particleMap[mapIndex] = idx;
-}
-
-__global__ void renderBoidsKernel(float* x, float* y, int* interaction, unsigned char* image, int numBoids, int envWidth) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= numBoids) return;
-
-    // Déterminer la couleur selon l'interaction
-    unsigned char r, g, b;
-    switch (interaction[idx]) {
-        case 1: r = 255; g = 0;   b = 0;   break;  // Rouge
-        case 2: r = 0;   g = 255; b = 0;   break;  // Vert
-        case 3: r = 0;   g = 0;   b = 255; break;  // Bleu
-        default: r = 127; g = 127; b = 0; break;   // Jaune
-    }
-
-    // Position du boid
-    int pixelX = static_cast<int>(x[idx]);
-    int pixelY = static_cast<int>(y[idx]);
-
-    int pixelIndex = (pixelY * envWidth + pixelX) * 3;
-    image[pixelIndex]     = b;  // Blue
-    image[pixelIndex + 1] = g;  // Green
-    image[pixelIndex + 2] = r;  // Red
 }

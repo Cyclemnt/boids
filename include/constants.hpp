@@ -4,7 +4,7 @@
 #include <cmath>
 
 // Nombre de boids initiaux
-#define NUM_BOIDS 524288/8
+#define NUM_BOIDS 524288/2
 // Vitesse des boids
 #define SPEED 20.0f
 #define ANG_V M_PIf
@@ -12,9 +12,9 @@
 #define ENV_WIDTH (1920)
 #define ENV_HEIGHT (1200)
 // Rayons d'interactions
-#define R_DISTANCING 4.0f
-#define R_ALIGNMENT 10.0f
-#define R_COHESION 16.0f
+#define R_DISTANCING 1.0f
+#define R_ALIGNMENT 5.0f
+#define R_COHESION 5.0f
 // Fielf of view
 #define FOV 5.0f
 // Poids des interactions
