@@ -15,9 +15,11 @@
 #define R_DISTANCING 1.0f
 #define R_ALIGNMENT 5.0f
 #define R_COHESION 5.0f
+#define R_MOUSE 40.0f
 // Fielf of view
 #define FOV 5.0f
 // Poids des interactions
+#define WEIGHT_MOUSE 5.0f
 #define WEIGHT_DISTANCING 0.5f
 #define WEIGHT_ALIGNMENT 0.05f
 #define WEIGHT_COHESION 0.005f

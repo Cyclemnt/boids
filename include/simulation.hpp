@@ -23,6 +23,7 @@ class Simulation {
         bool running, paused; // état de la simulation
         const float inverseCellWidth, inverseCellHeight; // Inverse des dimensions de cellule
         const int numCells, numCellWidth, numCellHeight; // Nombre de cellules, en x et en y
+        int mouseX, mouseY; // Position de la souris
     public :
         // Constructeur
         Simulation();

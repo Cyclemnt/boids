@@ -17,6 +17,24 @@ void Simulation::run() {
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(NUM_BOIDS);
     
+    // Utiliser une lambda pour capturer l'instance
+    cv::namedWindow("Simulation", cv::WINDOW_AUTOSIZE);
+    cv::setMouseCallback("Simulation", [](int event, int x, int y, int flags, void* userdata) {
+        Simulation* sim = static_cast<Simulation*>(userdata);
+
+        if (flags & cv::EVENT_FLAG_LBUTTON) {
+            // Si le bouton gauche est pressé, mettre à jour les coordonnées
+            if (event == cv::EVENT_MOUSEMOVE || event == cv::EVENT_LBUTTONDOWN) {
+                sim->mouseX = x;
+                sim->mouseY = y;
+            }
+        } else {
+            // Sinon, réinitialiser les coordonnées
+            sim->mouseX = -1;
+            sim->mouseY = -1;
+        }
+    }, this);
+
     // Allouer la mémoire dans la GPU et copier les données
     allocateBoidDataOnGPU();
     copyBoidDataToGPU();
@@ -28,7 +46,7 @@ void Simulation::run() {
         if (paused) continue; // Si en pause, ne pas mettre à jour la simulation
 
         // Appeler le kernel CUDA
-        updateBoidsCUDA(d_x, d_y, d_theta, d_image, x.size(), d_cellCount, d_particleMap, numCells, numCellWidth, numCellHeight, inverseCellWidth, inverseCellHeight);
+        updateBoidsCUDA(d_x, d_y, d_theta, d_image, x.size(), mouseX, mouseY, d_cellCount, d_particleMap, numCells, numCellWidth, numCellHeight, inverseCellWidth, inverseCellHeight);
         // Afficher
         updateDisplay();
     }

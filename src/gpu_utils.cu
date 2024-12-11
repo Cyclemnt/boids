@@ -5,11 +5,12 @@
 #include <thrust/scan.h> // Pour partial sum
 
 // Kernel
-__global__ void updateBoidsKernel(float* x, float* y, float* theta, unsigned char* image, int* cellCount, int* particleMap, const int numBoids, const int numCellsWidth, const int numCellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
+__global__ void updateBoidsKernel(float* x, float* y, float* theta, int mouseX, int mouseY, unsigned char* image, int* cellCount, int* particleMap, const int numBoids, const int numCellsWidth, const int numCellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= numBoids) return;
 
     // Définir les constantes avec constexpr
+    constexpr int rMouseSquared = R_MOUSE * R_MOUSE;
     constexpr int rDistancingSquared = R_DISTANCING * R_DISTANCING;
     constexpr int rAlignmentSquared = R_ALIGNMENT * R_ALIGNMENT;
     constexpr int rCohesionSquared = R_COHESION * R_COHESION;
@@ -29,6 +30,7 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, unsigned cha
     float alignX = 0.0f, alignY = 0.0f;
     float cohesionX = 0.0f, cohesionY = 0.0f;
     float distX = 0.0f, distY = 0.0f;
+    float followMouseX = 0.0f, followMouseY = 0.0f;
     int alignCount = 0, cohesionCount = 0, distCount = 0;
 
     // Parcourir les cellules voisines (3x3 voisinage)
@@ -99,16 +101,33 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, unsigned cha
         }
     }
 
+    // Suivi de souris
+    if (mouseX != -1) {
+        float dxMouse = posX - mouseX;
+        float dyMouse = posY - mouseY;
+
+        if (dxMouse > halvedEnvWidth) dxMouse -= ENV_WIDTH;
+        else if (dxMouse < -halvedEnvWidth) dxMouse += ENV_WIDTH;
+        if (dyMouse > halvedEnvHeight) dyMouse -= ENV_HEIGHT;
+        else if (dyMouse < -halvedEnvHeight) dyMouse += ENV_HEIGHT;
+        
+        if ((dxMouse * dxMouse) + (dyMouse * dyMouse) < rMouseSquared) {
+            followMouseX = -dxMouse;
+            followMouseY = -dyMouse;
+        }
+    }
+
     // Moyenne des vecteurs
     unsigned char r = 127, g = 127, b = 0;
     if (cohesionCount > 0) { cohesionX /= cohesionCount; cohesionY /= cohesionCount; r = 0; g = 0; b = 255; }
     if (alignCount > 0) { alignX /= alignCount; alignY /= alignCount; r = 0; g = 255; b = 0; }
     if (distCount > 0) { distX /= distCount; distY /= distCount; r = 255; g = 0; b = 0; }
+    if (followMouseX != 0) { r = 127; g = 0; b = 127; }
     
     if (alignCount != 0 || cohesionCount != 0 || distCount != 0) {
         // Combiner les vecteurs
-        float newDirX = WEIGHT_DISTANCING * distX + WEIGHT_ALIGNMENT * alignX + WEIGHT_COHESION * cohesionX;
-        float newDirY = WEIGHT_DISTANCING * distY + WEIGHT_ALIGNMENT * alignY + WEIGHT_COHESION * cohesionY;
+        float newDirX = WEIGHT_DISTANCING * distX + WEIGHT_ALIGNMENT * alignX + WEIGHT_COHESION * cohesionX + WEIGHT_MOUSE * followMouseX;
+        float newDirY = WEIGHT_DISTANCING * distY + WEIGHT_ALIGNMENT * alignY + WEIGHT_COHESION * cohesionY + WEIGHT_MOUSE * followMouseY;
 
         // Calculer la nouvelle orientation
         float newOrientation = atan2f(newDirY, newDirX);
@@ -146,6 +165,7 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, unsigned cha
 // Fonction d'encapsulation pour appeler le kernel
 void updateBoidsCUDA(
     float* d_x, float* d_y, float* d_theta, unsigned char* d_image, const int numBoids,
+    int mouseX, int mouseY,
     int* d_cellCount, int* d_particleMap,
     const int numCells, const int numCellsWidth, const int numcellsHeight, const float inverseCellWidth, const float inverseCellHeight) {
     if (numBoids == 0) return;
@@ -168,7 +188,7 @@ void updateBoidsCUDA(
 
     // Appeler le kernel principal
     cudaMemset(d_image, 0, ENV_WIDTH * ENV_HEIGHT * 3); // Nettoyage de l'image
-    updateBoidsKernel<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_theta, d_image, d_cellCount, d_particleMap, numBoids, numCellsWidth, numcellsHeight, inverseCellWidth, inverseCellHeight);
+    updateBoidsKernel<<<blocksPerGrid, threadsPerBlock>>>(d_x, d_y, d_theta, mouseX, mouseY, d_image, d_cellCount, d_particleMap, numBoids, numCellsWidth, numcellsHeight, inverseCellWidth, inverseCellHeight);
     cudaDeviceSynchronize();
 }
 
