@@ -10,7 +10,6 @@ set(CMAKE_CUDA_ARCHITECTURES 86)  # Architecture Ampere, ajouter d'autres si né
 
 # Trouver les packages requis
 find_package(OpenCV REQUIRED)
-find_package(OpenMP REQUIRED)
 find_package(CUDA REQUIRED)
 
 # Activer le support CUDA
@@ -46,8 +45,7 @@ add_library(cuda_kernels STATIC ${CUDA_SOURCES})
 add_executable(main ${SOURCES})
 
 # Lier les bibliothèques nécessaires
-target_link_libraries(main PRIVATE 
-    OpenMP::OpenMP_CXX 
+target_link_libraries(main PRIVATE
     ${OpenCV_LIBS} 
     cuda_kernels
 )

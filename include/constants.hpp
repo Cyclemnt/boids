@@ -6,7 +6,7 @@
 // Nombre de boids initiaux
 #define NUM_BOIDS 524288/2
 // Vitesse des boids
-#define SPEED 20.0f
+#define SPEED 40.0f
 #define ANG_V M_PIf
 // Dimensions de l'environnement
 #define ENV_WIDTH (1920)
@@ -22,6 +22,6 @@
 #define WEIGHT_ALIGNMENT 0.05f
 #define WEIGHT_COHESION 0.005f
 // Temps entre chaque calculs
-#define TIME_STEP 0.03f
+#define TIME_STEP 0.012f
 
 #endif // CONSTANTS_HPP
