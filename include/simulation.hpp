@@ -1,40 +1,54 @@
 #ifndef SIMULATION_HPP
 #define SIMULATION_HPP
 
-#include "boid.hpp"
-#include "zone.hpp"
-#include <opencv2/opencv.hpp>
+#include <vector>
 
 class Simulation {
     private : 
-        int envWidth, envHeight, timeStep;
-        std::vector<Boid*> boids;
-        Zone* zoneptr;
-        bool paused;
+        // Poses
+        std::vector<float> x;
+        std::vector<float> y;
+        std::vector<float> theta;
+        // Spatial hashing
+        std::vector<int> cellCount; // Nombre de boids par cellule (initialement), devient la somme partielle
+        std::vector<int> particleMap; // Indices des boids triés par cellule
+        // Pointeurs GPU
+        float* d_x;
+        float* d_y;
+        float* d_theta;
+        unsigned char* d_image;
+        int* d_cellCount;
+        int* d_particleMap;
+        // Divers
+        bool running, paused; // état de la simulation
+        const float inverseCellWidth, inverseCellHeight; // Inverse des dimensions de cellule
+        const int numCells, numCellWidth, numCellHeight; // Nombre de cellules, en x et en y
     public :
         // Constructeur
-        Simulation(int envWidth_, int envHeight_, int timeStep_);
+        Simulation();
 
-        // Lance la simulation
-        void run();
-        // Méthode pour ajouter un boid à la simulation
-        void addBoid(vPose pose, double maxSpeed, double maxAngVelocity);
-        // Méthode pour supprimer un boid de la simulation
-        void removeBoid();
-        // Méthode pour initialiser les boids de manière aléatoire
-        void initializeBoidsRandomly(int numBoids, double maxSpeed, double maxAngVelocity);
-        // Méthode pour gérer les touches
-        void handleKeyPress(int key);
-        // Réinitialiser la simulation
-        void reset();
-        // Méthode pour gérer la pause de la simulation
-        void togglePause();
-        // Met à jour tous les boids et affiche la simulation
-        void updateDisplay();
-        // Affiche chaque boid avec une couleur selon son interaction
-        void displayBoid(cv::Mat& image, const Boid* boid);
-        // Méthode pour obtenir l'état de la simulation
-        bool isPaused() const ;
+        void run(); // Lance la simulation
+        void initializeBoidsRandomly(int numBoids); // Initialiser les boids de manière aléatoire
+        int findMinDivisor(int number, int minSize); // Trouver le diviseur min d'un nombre supérieur ou égal à un certain seuil
+
+        // AFFICHAGE
+        void updateDisplay() const; // Afficher la simulation
+
+        // CONTRÔLE BOIDS
+        inline void addBoid(float x_, float y_, float theta_); // Ajouter un boid à la simulation
+        inline void removeBoid(int id); // Supprimer un boid de la simulation
+        inline void reset(); // Réinitialiser la simulation
+
+        // CONTRÔLE SIMULATION
+        inline void handleKeyPress(int key); // Gérer les touches
+        inline void togglePause(); // Gérer la pause de la simulation
+
+        // FONCTIONS UTILES CUDA
+        inline void allocateBoidDataOnGPU(); // Allouer la mémoire GPU
+        inline void freeBoidDataOnGPU(); // Libérer la mémoire GPU
+        inline void copyBoidDataToGPU(); // Transférer les données CPU -> GPU
+        inline void copyBoidDataToCPU(); // Transférer les données GPU -> CPU
+        inline void reallocate(); // Réallouer si la taille change
 
         ~Simulation();
 };
