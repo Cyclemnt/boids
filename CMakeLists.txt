@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED 17)
 find_package(
     OpenCV REQUIRED
 )
+find_package(OpenMP REQUIRED)
 
 include_directories(
     include/
@@ -30,4 +31,4 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")  
 
 add_executable( main ${SOURCES} ${HEADERS} )
-target_link_libraries( main ${OpenCV_LIBS} )
+target_link_libraries( main OpenMP::OpenMP_CXX ${OpenCV_LIBS} )

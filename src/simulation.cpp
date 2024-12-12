@@ -1,9 +1,10 @@
 #include "../include/simulation.hpp"
 #include <random>
+#include <omp.h>
 
 // Paramètres
-#define NUM_BOIDS 800       // Nombre de Boids initialisés au début
-#define SPEED 140           // Vitesse des Boids (px/s)
+#define NUM_BOIDS 2000       // Nombre de Boids initialisés au début
+#define SPEED 100           // Vitesse des Boids (px/s)
 #define ANG_V (2 * M_PI)    // Vitesse angulaire maximum des Boids (rad/s)
 #define FOV 5               // Angle de vue des Boids (rad)
 // Rayons des règles d'interaction (px)
@@ -25,6 +26,7 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
 
 // Lance la Simulation
 void Simulation::run() {
+    omp_set_num_threads(omp_get_max_threads());
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(NUM_BOIDS, SPEED, ANG_V);
 
@@ -37,6 +39,7 @@ void Simulation::run() {
         if (paused) continue;
 
         // Parcourir tous les boids
+        #pragma omp parallel for
         for (int i = 0; i < boids.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, envWidth, envHeight);
             boids[i]->applyRules(neighbors, WEIGHT_DISTANCING, WEIGHT_ALIGNMENT, WEIGHT_COHESION, envWidth, envHeight);
@@ -125,6 +128,7 @@ void Simulation::updateDisplay() {
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
     
     // Mettre à jour chaque boid
+    #pragma omp parallel for
     for (Boid* boid : boids) {
         displayBoid(image, boid); // Afficher le boid dans l'image
     }
