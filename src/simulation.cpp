@@ -72,7 +72,7 @@ void Simulation::run() {
     // Boucle principale
     while (true) {
         // Gestion des entrées clavier
-        int key = cv::waitKey(timeStep); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
+        int key = cv::waitKey(1); // Remplacer "timeStep" ici par 1 pour une simulation plus fluide, mais moins juste
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         // Si en pause, ne pas mettre à jour la simulation
         if (paused) continue;
