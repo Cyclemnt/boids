@@ -19,7 +19,7 @@ Les boids sont un exemple de comportement émergent, c'est-à-dire que la comple
 - Fonction de suivi de la souris par les boids, activable/désactivable.  
 
 #### Optimisation des performances  
-- Optimisation avancée via CUDA et spatial hashing, permettant la simulation de milliers de boids.  
+- Optimisation avancée via CUDA et spatial hashing, permettant la simulation de centaines milliers de boids.  
 
 #### Prédation  
 - Introduction de prédateurs et de ressources statiques (nourriture).  
@@ -27,7 +27,8 @@ Les boids sont un exemple de comportement émergent, c'est-à-dire que la comple
 - Transformation des entités selon des interactions spécifiques (ex : boid capturé devient prédateur).  
 
 ## Dépendances
-- **[OpenCV](https://opencv.org/)** : Pour les affichages graphiques.
+- **[OpenCV](https://www.opencv.org/)** : Pour les affichages graphiques.
+- **[OpenMP](https://www.openmp.org/)** : Pour la parallélisation CPU.
 - **CMake** : Pour la configuration et la construction du projet.
 - **C++11** ou version ultérieure.
 - **[CUDA](https://developer.nvidia.com/cuda-toolkit)** : Pour la parallélisation de la branche extension-performance
