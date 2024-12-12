@@ -64,8 +64,6 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, unsigned cha
                 // Calculer la distance euclidienne avec les distances minimales en x et y
                 float distanceSquared = (dx * dx) + (dy * dy);
 
-                if (distanceSquared > rCohesionSquared) continue; // éviter de faire les calculs suivants pour rien
-
                 // Calculer l'angle du vecteur (dx, dy) par rapport à l'axe x
                 float angleToNeighbor = atan2f(dy, dx);
                 // Calculer la différence angulaire par rapport à l'orientation du boid
@@ -73,9 +71,7 @@ __global__ void updateBoidsKernel(float* x, float* y, float* theta, unsigned cha
                 if (angleDifference > M_PIf) angleDifference -= twoPif;
                 else if (angleDifference < -M_PIf) angleDifference += twoPif;
 
-                bool isWithinFOV = fabsf(angleDifference) <= (halvedFOV);
-
-                if (!isWithinFOV) continue;
+                if (fabsf(angleDifference) > (halvedFOV)) continue;
                 
                 // Règle 1 : Distanciation
                 if (distanceSquared < rDistancingSquared) {

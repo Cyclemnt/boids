@@ -4,7 +4,7 @@
 #include <cmath>
 
 // Nombre de boids initiaux
-#define NUM_BOIDS 524288/2
+#define NUM_BOIDS 524288
 // Vitesse des boids
 #define SPEED 40.0f
 #define ANG_V M_PIf
@@ -22,6 +22,12 @@
 #define WEIGHT_ALIGNMENT 0.05f
 #define WEIGHT_COHESION 0.005f
 // Temps entre chaque calculs
-#define TIME_STEP 0.012f
+#define TIME_STEP 0.015f // Ajuster en fonction du matériel et du nombre de boids
+// Recommandé pour RTX3060 : 
+// NUM_BOIDS    TIME_STEP
+//   250 000    0.015f
+//   500 000    0.030f
+// 1 000 000    0.060f
+// 2 000 000    0.120f
 
 #endif // CONSTANTS_HPP
