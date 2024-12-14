@@ -3,14 +3,14 @@
 
 // Paramètres
     //boids
-    #define NUM_BOIDS 800       // Nombre de Boids initialisés au début
+    #define NUM_BOIDS 800         // Nombre de Boids initialisés au début
     #define SPEED_B 200           // Vitesse des Boids (px/s)
     #define ANG_V_B (2 * M_PI)    // Vitesse angulaire maximum des Boids (rad/s)
     #define FOV_B 5               // Angle de vue des Boids (rad)
-    #define INSTINCT_B 6          // Angle de déctection des prédateurs
+    #define INSTINCT_B 6          // Angle de déctection des prédators
     #define LIFE_B 0              // temps de vie d'un boid ( inutilisé )
     //predators
-    #define NUM_PREDATORS 5      // Nombre de predators initialisés au début
+    #define NUM_PREDATORS 5       // Nombre de predators initialisés au début
     #define SPEED_P 300           // Vitesse des predators (px/s)
     #define ANG_V_P (2 * M_PI)    // Vitesse angulaire maximum des predators (rad/s)
     #define FOV_P 5               // Angle de vue des predators (rad)
@@ -18,46 +18,31 @@
     #define LIFE_P 200            // temps de vie d'un predator
 // Rayons des règles d'interaction (px)
     //boids 
-    #define R_DISTANCING_B 10
-    #define R_ALIGNMENT_B 40
-    #define R_COHESINON_B 90
-    #define R_FLED_B 50
-    #define R_PREDATION_B 0
-    #define R_CATCH_B 1
-    #define R_FEED_B 50
-    #define R_BREED_B 0
+    #define R_DISTANCING_B 10   // Rayon de distantiation des Boids
+    #define R_ALIGNMENT_B 40    // Rayon de l'alignement des Boids
+    #define R_COHESINON_B 90    // Rayon de cohésion des Boids
+    #define R_FLED_B 50         // Rayon de fuite des Boids
+    #define R_CATCH_B 1         // Hitbox du boid
+    #define R_FEED_B 50         // Rayon de détection de la nourriture 
     //predators
-    #define R_DISTANCING_P 0
-    #define R_ALIGNMENT_P 0
-    #define R_COHESINON_P 90
-    #define R_FLED_P 10
-    #define R_PREDATION_P 40
-    #define R_CATCH_P 0
-    #define R_FEED_P 0
-    #define R_BREED_P 0
+    #define R_COHESINON_P 90    // Rayon de prédation global des predators 
+    #define R_FLED_P 10         // Rayon de distanciation des predators
+    #define R_PREDATION_P 40    // Rayon de prédation restraint des predators 
     //food
-    #define R_BREED_F 1
+    #define R_BREED_F 1         // Hitbox de la nourriture 
 // Poids des règles d'interaction
     //boids
-    #define WEIGHT_DISTANCING_B 0.05
-    #define WEIGHT_ALIGNMENT_B 0.05
-    #define WEIGHT_COHESION_B 0.0005
-    #define WEIGHT_FLED_B 0.3
-    #define WEIGHT_PREDATION_B 0
-    #define WEIGHT_CATCH_B 0
-    #define WEIGHT_FEED_B 0.2
-    #define WEIGHT_BREED_B 0
-    #define BOOST_SPEED 2
-    #define BOOST_ANGV 2
+    #define WEIGHT_DISTANCING_B 0.05    // Poids de distantiation des Boids
+    #define WEIGHT_ALIGNMENT_B 0.05     // Poids de l'alignement des Boids
+    #define WEIGHT_COHESION_B 0.0005    // Poids de cohésion des Boids
+    #define WEIGHT_FLED_B 0.3           // Poids de fuite des Boids
+    #define WEIGHT_FEED_B 0.2           // Poids de détection de la nourriture
+    #define BOOST_SPEED 2               // Cohéficient du boost de la vitesse de translation
+    #define BOOST_ANGV 2                // Cohéficient du boost de la vitesse de rotation
     //predators
-    #define WEIGHT_DISTANCING_P 0
-    #define WEIGHT_ALIGNMENT_P 0
-    #define WEIGHT_COHESION_P 0.005
-    #define WEIGHT_FLED_P 0.05
-    #define WEIGHT_PREDATION_P 0.07
-    #define WEIGHT_CATCH_P 0
-    #define WEIGHT_FEED_P 0
-    #define WEIGHT_BREED_P 0
+    #define WEIGHT_COHESION_P 0.005     // Poids de prédation global des predators
+    #define WEIGHT_FLED_P 0.05          // Poids de distanciation des predators
+    #define WEIGHT_PREDATION_P 0.07     // Poids de prédation restraint des predators
 
 Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), predators({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
@@ -85,7 +70,7 @@ void Simulation::run() {
         for (int i = 0; i < boids.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, predators, foods, envWidth, envHeight);
             boids[i]->applyRules(neighbors, WEIGHT_DISTANCING_B, WEIGHT_ALIGNMENT_B, WEIGHT_COHESION_B, WEIGHT_FLED_B, WEIGHT_PREDATION_B, WEIGHT_CATCH_B, WEIGHT_FEED_B, WEIGHT_BREED_B, envWidth, envHeight);
-        if (boids[i]->getCurrentInteraction() == Interaction::CATCH) {        // disparition si attrapé
+        if (boids[i]->getCurrentInteraction() == Interaction::CATCH) {        // disparition si attrapé et duplication du predator
             vPose boidPose = boids[i]->getPose();
             removeThisBoid(boids[i]);
             addPredator(boidPose, SPEED_P, ANG_V_P, LIFE_P);
@@ -118,7 +103,7 @@ void Simulation::run() {
          for (int i = 0; i < foods.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zonef->getNearBoids(foods[i], boids, predators, foods, envWidth, envHeight);
             foods[i]->applyRules(neighbors,0,0,0,0,0,0,0,0, envWidth, envHeight);
-            if (foods[i]->getCurrentInteraction() == Interaction::BREED) {
+            if (foods[i]->getCurrentInteraction() == Interaction::BREED) {      // disparition si consommé et duplication du boid
                 vPose foodPose = foods[i]->getPose();
                 removeThisFood(foods[i]);
                 addBoid(foodPose, SPEED_B, ANG_V_B, LIFE_B);
