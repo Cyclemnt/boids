@@ -19,7 +19,7 @@ Les boids sont un exemple de comportement émergent, c'est-à-dire que la comple
 - Fonction de suivi de la souris par les boids, activable/désactivable.  
 
 #### Optimisation des performances  
-- Optimisation avancée via CUDA et spatial hashing, permettant la simulation de centaines milliers de boids.  
+- Optimisation avancée via CUDA et spatial hashing, permettant la simulation du million de boids.  
 
 #### Prédation  
 - Introduction de prédateurs et de ressources statiques (nourriture).  
