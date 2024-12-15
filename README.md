@@ -30,4 +30,3 @@ Avec ces techniques, la simulation peut gérer jusqu’au million de boids tout 
    make
    ./main
    ```  
-```
