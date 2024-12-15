@@ -5,8 +5,8 @@ project(boids LANGUAGES CXX CUDA)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Spécifier l'architecture CUDA (Ampere)
-set(CMAKE_CUDA_ARCHITECTURES 86)  # Architecture Ampere, ajouter d'autres si nécessaire
+# Spécifier l'architecture CUDA
+set(CMAKE_CUDA_ARCHITECTURES 86)  # Architecture 86 : Ampere, ajouter d'autres si nécessaire
 
 # Trouver les packages requis
 find_package(OpenCV REQUIRED)

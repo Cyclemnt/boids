@@ -5,38 +5,40 @@
 #include <random>
 #include <chrono>
 
+// Constructeur
 Simulation::Simulation()
-    : paused(false), d_x(nullptr), d_y(nullptr), d_theta(nullptr), d_particleMap(nullptr), d_cellCount(nullptr), d_image(nullptr), running(true),
+    : paused(false), d_x(nullptr), d_y(nullptr), d_theta(nullptr), d_boidMap(nullptr), d_cellCount(nullptr), d_image(nullptr), running(true),
       inverseCellWidth(1.0 / findMinDivisor(ENV_WIDTH, R_COHESION)), inverseCellHeight(1.0 / findMinDivisor(ENV_HEIGHT, R_COHESION)),
       numCellWidth(ENV_WIDTH * inverseCellWidth), numCellHeight(ENV_HEIGHT * inverseCellHeight), numCells(ENV_WIDTH * inverseCellWidth * ENV_HEIGHT * inverseCellHeight) {
     cellCount.resize(numCells + 1);
 }
 
-// Lance la Simulation
+// Lancer la simulation
 void Simulation::run() {
     // Initialiser des boids avec des positions aléatoires
     initializeBoidsRandomly(NUM_BOIDS);
     
-    // Allouer la mémoire dans la GPU et copier les données
+    // Allouer la mémoire GPU et copier les données
     allocateBoidDataOnGPU();
     copyBoidDataToGPU();
 
     // Boucle principale
     while (running) {
-        int key = cv::waitKey(1); // Gestion des entrées clavier
+        int key = cv::waitKey(1); // Récupérer les entrées clavier
         if (key != -1) handleKeyPress(key); // Si une touche a été pressée, traiter l'entrée
         if (paused) continue; // Si en pause, ne pas mettre à jour la simulation
 
         // Appeler le kernel CUDA
-        updateBoidsCUDA(d_x, d_y, d_theta, d_image, x.size(), d_cellCount, d_particleMap, numCells, numCellWidth, numCellHeight, inverseCellWidth, inverseCellHeight);
+        updateBoidsCUDA(d_x, d_y, d_theta, d_image, x.size(), d_cellCount, d_boidMap, numCells, numCellWidth, numCellHeight, inverseCellWidth, inverseCellHeight);
         // Afficher
         updateDisplay();
     }
     
+    // Libérer la mémoire GPU
     freeBoidDataOnGPU();
 }
 
-// Méthode pour initialiser les boids de manière aléatoire
+// Initialiser les boids de manière aléatoire
 void Simulation::initializeBoidsRandomly(int numBoids) {
     // Création d'un moteur aléatoire avec une graine unique
     std::random_device rd;  // Génére une graine à partir de l'environnement
@@ -47,46 +49,46 @@ void Simulation::initializeBoidsRandomly(int numBoids) {
     std::uniform_real_distribution<> offsetDist(0, rand());
     
     for (int i = 0; i < numBoids; ++i) {
-        float newX = xDist(gen);  // Position x aléatoire
-        float newY = yDist(gen);  // Position y aléatoire
-        float newTheta = thetaDist(gen);  // Orientation aléatoire
+        float newX = xDist(gen); // Position x aléatoire
+        float newY = yDist(gen); // Position y aléatoire
+        float newTheta = thetaDist(gen); // Orientation aléatoire
         addBoid(newX, newY, newTheta);
     }
 }
 
-// Fonction pour trouver le diviseur min d'un nombre supérieur ou égal à un certain seuil
+ // Trouver le plus petit diviseur commun
 int Simulation::findMinDivisor(int number, int minSize) {
     for (int i = minSize; i <= number; ++i) {
         if (number % i == 0) return i;
-    } // Voir si arrondi possible
+    }
     return -1;
 }
 
-// Affiche la simulation
-void Simulation::updateDisplay() const {
-    cv::Mat image(ENV_HEIGHT, ENV_WIDTH, CV_8UC3);
-    cudaMemcpy(image.data, d_image, ENV_WIDTH * ENV_HEIGHT * 3, cudaMemcpyDeviceToHost);
-
+// Afficher la simulation
+inline void Simulation::updateDisplay() const {
+    cv::Mat image(ENV_HEIGHT, ENV_WIDTH, CV_8UC3); // Créer l'image
+    cudaMemcpy(image.data, d_image, ENV_WIDTH * ENV_HEIGHT * 3, cudaMemcpyDeviceToHost); // Récupérer l'image du GPU
+    // Afficher
     cv::namedWindow("Simulation", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Simulation", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
     cv::imshow("Simulation", image);
 }
 
-// Méthode pour ajouter un boid à la simulation
+// Ajouter un boid à la simulation
 inline void Simulation::addBoid(float x_, float y_, float theta_) {
-    // Ajouter au CPU
     x.push_back(x_);
     y.push_back(y_);
     theta.push_back(theta_);
-    particleMap.push_back(0);
+    boidMap.push_back(0);
 }
 
-// Méthode pour supprimer un boid de la simulation
+// Supprimer un boid de la simulation
 inline void Simulation::removeBoid(int id) {
+    if (x.empty()) return;
     x.erase(x.begin() + id);
     y.erase(y.begin() + id);
     theta.erase(theta.begin() + id);
-    particleMap.erase(particleMap.begin()); // Peu importe la case supprimée
+    boidMap.erase(boidMap.begin()); // Peu importe la case supprimée
 }
 
 // Réinitialiser la simulation
@@ -94,10 +96,10 @@ inline void Simulation::reset() {
     x.clear();
     y.clear();
     theta.clear();
-    particleMap.clear();
+    boidMap.clear();
 }
 
-// Méthode pour gérer les touches
+// Gérer les touches
 inline void Simulation::handleKeyPress(int key) {
     switch (key) {
         case 'p': // Pause ou reprise
@@ -113,15 +115,13 @@ inline void Simulation::handleKeyPress(int key) {
             copyBoidDataToCPU();
             initializeBoidsRandomly(1024);
             reallocate();
-            std::cout << "Boid ajouté." << std::endl;
+            std::cout << "1024 boids ajoutés." << std::endl;
             break;
         case '-': // Supprimer un boid
-            if (x.empty()) return;
             copyBoidDataToCPU();
-            for (int i = 0; i < 1024; i++)
-            removeBoid(x.size());
+            for (int i = 0; i < 1024; i++) removeBoid(x.size());
             reallocate();
-            std::cout << "Boid supprimé." << std::endl;
+            std::cout << "1024 boids supprimés." << std::endl;
             break;
         case 27: // Échapper (ESC) pour quitter
             running = false;
@@ -131,13 +131,13 @@ inline void Simulation::handleKeyPress(int key) {
     }
 }
 
-// Méthode pour basculer l'état de pause
+// Basculer l'état de pause
 inline void Simulation::togglePause() {
     paused = !paused;
 }
 
 //FONCTIONS UTILES CUDA
-// Alloue la mémoire GPU pour les données des Boids
+// Allouer la mémoire GPU
 inline void Simulation::allocateBoidDataOnGPU() {
     size_t dataSizef = x.size() * sizeof(float);
     size_t dataSizei = x.size() * sizeof(int);
@@ -148,21 +148,21 @@ inline void Simulation::allocateBoidDataOnGPU() {
     cudaMalloc(&d_y, dataSizef);
     cudaMalloc(&d_theta, dataSizef);
     cudaMalloc(&d_cellCount, cellCountSize);
-    cudaMalloc(&d_particleMap, dataSizei);
+    cudaMalloc(&d_boidMap, dataSizei);
     cudaMalloc(&d_image, ENV_WIDTH * ENV_HEIGHT * 3 * sizeof(unsigned char));  // 3 canaux pour RGB
 }
 
-// Libère la mémoire GPU
+// Libérer la mémoire GPU
 inline void Simulation::freeBoidDataOnGPU() {
     cudaFree(d_x);
     cudaFree(d_y);
     cudaFree(d_theta);
     cudaFree(d_cellCount);
-    cudaFree(d_particleMap);
+    cudaFree(d_boidMap);
     cudaFree(d_image);
 }
 
-// Transfère les données CPU -> GPU
+// Transférer les données CPU -> GPU
 inline void Simulation::copyBoidDataToGPU() {
     size_t dataSize = x.size() * sizeof(float);
 
@@ -171,7 +171,7 @@ inline void Simulation::copyBoidDataToGPU() {
     cudaMemcpy(d_theta, theta.data(), dataSize, cudaMemcpyHostToDevice);
 }
 
-// Transfère les données GPU -> CPU
+// Transférer les données GPU -> CPU
 inline void Simulation::copyBoidDataToCPU() {
     size_t dataSizef = x.size() * sizeof(float);
     size_t dataSizei = x.size() * sizeof(int);
@@ -181,13 +181,14 @@ inline void Simulation::copyBoidDataToCPU() {
     cudaMemcpy(theta.data(), d_theta, dataSizef, cudaMemcpyDeviceToHost);
 }
 
-// Réallocation si la taille change
+// Allouer à nouveau
 inline void Simulation::reallocate() {
     freeBoidDataOnGPU();
     allocateBoidDataOnGPU();
     copyBoidDataToGPU();
 }
 
+// Destructeur
 Simulation::~Simulation() {
     running = false;
     reset();
