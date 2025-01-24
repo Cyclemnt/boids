@@ -48,8 +48,8 @@ Simulation::Simulation(int envWidth_, int envHeight_, int timeStep_)
     : envWidth(envWidth_), envHeight(envHeight_), timeStep(timeStep_), boids({}), predators({}), zoneptr(nullptr), zoneprdt(nullptr), paused(false) {
     // Création d'une image de la taille de la simulation
     cv::Mat image = cv::Mat::zeros(envHeight, envWidth, CV_8UC3);
-    zoneptr = new Zone(R_DISTANCING_B, R_ALIGNMENT_B, R_COHESINON_B, R_PREDATION_B, R_FLED_B, R_CATCH_B, R_FEED_B, R_BREED_B, FOV_B, INSTINCT_B);
-    zoneprdt = new Zone(R_DISTANCING_P, R_ALIGNMENT_P, R_COHESINON_P, R_PREDATION_P, R_FLED_P, R_CATCH_P, R_FEED_P, R_BREED_P, FOV_P, INSTINCT_P);
+    zoneptr = new Zone(R_DISTANCING_B, R_ALIGNMENT_B, R_COHESINON_B, 0, R_FLED_B, R_CATCH_B, R_FEED_B, 0, FOV_B, INSTINCT_B);
+    zoneprdt = new Zone(0, 0, R_COHESINON_P, R_PREDATION_P, R_FLED_P, 0, 0, 0, FOV_P, INSTINCT_P);
     zonef = new Zone(0,0,0,0,0,0,0,R_BREED_F,0,0);
 }
 
@@ -69,7 +69,7 @@ void Simulation::run() {
         // Parcourir tous les boids
         for (int i = 0; i < boids.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zoneptr->getNearBoids(boids[i], boids, predators, foods, envWidth, envHeight);
-            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING_B, WEIGHT_ALIGNMENT_B, WEIGHT_COHESION_B, WEIGHT_FLED_B, WEIGHT_PREDATION_B, WEIGHT_CATCH_B, WEIGHT_FEED_B, WEIGHT_BREED_B, envWidth, envHeight);
+            boids[i]->applyRules(neighbors, WEIGHT_DISTANCING_B, WEIGHT_ALIGNMENT_B, WEIGHT_COHESION_B, WEIGHT_FLED_B, 0, 0, WEIGHT_FEED_B, 0, envWidth, envHeight);
         if (boids[i]->getCurrentInteraction() == Interaction::CATCH) {        // disparition si attrapé et duplication du predator
             vPose boidPose = boids[i]->getPose();
             removeThisBoid(boids[i]);
@@ -88,7 +88,7 @@ void Simulation::run() {
         // Parcourir tous les predators
         for (int i = 0; i < predators.size(); i++) {
             std::vector<std::vector<Boid*>> neighbors = zoneprdt->getNearBoids(predators[i], boids, predators, foods, envWidth, envHeight);
-            predators[i]->applyRules(neighbors, WEIGHT_DISTANCING_P, WEIGHT_ALIGNMENT_P, WEIGHT_COHESION_P, WEIGHT_FLED_P, WEIGHT_PREDATION_P, WEIGHT_CATCH_P, WEIGHT_FEED_P, WEIGHT_BREED_P, envWidth, envHeight);
+            predators[i]->applyRules(neighbors, 0, 0, WEIGHT_COHESION_P, WEIGHT_FLED_P, WEIGHT_PREDATION_P, 0, 0, 0, envWidth, envHeight);
             if (predators[i]->getLifeTime() <= 0) {     // supprimer le predator si sa vie est fini
                 vPose predatorPose = predators[i]->getPose();
                 removeThisPredator(predators[i]);
