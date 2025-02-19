@@ -2,6 +2,11 @@
 
 Ce projet propose une simulation de boids, des entités mobiles suivant des règles simples pour simuler des comportements collectifs. Basé sur une structure commune, il se décline en trois branches principales, chacune explorant une extension unique.  
 
+<p align="center">
+  <img src="demo.gif" alt="Demo"/>
+</p>
+
+
 ## Description du projet  
 Les boids sont un exemple de comportement émergent, c'est-à-dire que la complexité des boids provient de l'interaction d'agents individuels (les boids, dans ce cas) adhérant à un ensemble de règles simples. Les règles appliquées dans le monde des boids le plus simple sont les suivantes :  
 1. **Distanciation** : orienter pour éviter d'entasser les membres du troupeau local  
