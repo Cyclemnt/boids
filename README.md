@@ -2,6 +2,11 @@
 
 Cette branche du projet est dédiée à l’optimisation des performances de la simulation, permettant de gérer des populations de boids bien plus importantes grâce à des techniques avancées.  
 
+<p align="center">
+  <img src="demo-performance.png" alt="Demo"/>
+</p>
+
+
 ## Description de l'extension  
 L'optimisation repose sur deux approches principales :  
 1. **Parallélisation via CUDA** : Utilisation du GPU pour effectuer les calculs massivement parallèles, déchargeant ainsi le CPU.  
