@@ -3,9 +3,13 @@
 d'entités,  
 toutes issues de la classe Boid, offrant des interactions complexes et équilibrées, il y a donc
 maintenant  
-trois types d’entités.
+trois types d’entités.  
 
-![Gif predation](https://github.com/user-attachments/assets/3881d621-200f-4d4a-a3fe-123c97a08535)
+
+<p align="center">
+    <img src="https://github.com/user-attachments/assets/3881d621-200f-4d4a-a3fe-123c97a08535" width="500">
+</p>
+
 
 ### **Les nouvelles entités et leurs rôles**
 
