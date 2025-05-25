@@ -7,7 +7,7 @@ trois types d’entités.
 
 
 <p align="center">
-    <img src="https://github.com/user-attachments/assets/3881d621-200f-4d4a-a3fe-123c97a08535" width="500">
+    <img src="Gif predators.gif" alt="Demo" width="640" height="360"/>
 </p>
 
 
