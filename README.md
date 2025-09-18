@@ -1,32 +1,32 @@
-# Simulation de Boids - Optimisation des Performances  
+# Boids Simulation - Performance Optimization
 
-Cette branche du projet est dédiée à l’optimisation des performances de la simulation, permettant de gérer des populations de boids bien plus importantes grâce à des techniques avancées.  
+This branch of the project focuses on performance optimization, allowing the simulation to handle much larger populations of boids through advanced techniques.  
 
 <p align="center">
   <img src="demo-performance.png" alt="Demo"/>
 </p>
 
 
-## Description de l'extension  
-L'optimisation repose sur deux approches principales :  
-1. **Parallélisation via CUDA** : Utilisation du GPU pour effectuer les calculs massivement parallèles, déchargeant ainsi le CPU.  
-2. **Spatial Hashing** : Découpage de l’espace en cellules, réduisant le nombre de comparaisons nécessaires pour chaque boid.  
+## Extension Description  
+The optimization is based on two main approaches:  
+1. **CUDA Parallelization** : Uses the GPU to perform massively parallel computations, offloading the CPU.  
+2. **Spatial Hashing** : Divides the environment into cells, reducing the number of comparisons required for each boid.  
 
-Avec ces techniques, la simulation peut gérer jusqu’au million de boids tout en maintenant un affichage fluide.  
+With these techniques, the simulation can handle up to one million boids (depending on GPU) while maintaining smooth visualization.  
 
-## Dépendances  
-- **C++11** ou version ultérieure.  
-- **[CMake](https://cmake.org/)** : Pour la configuration et la compilation.  
-- **[OpenCV](https://opencv.org/)** : Pour l’affichage graphique.  
-- **[CUDA](https://developer.nvidia.com/cuda-toolkit)** ainsi qu'un **GPU NVIDIA** : Pour la parallélisation GPU.  
+## Dependencies  
+- **C++11** or later.  
+- **[CMake](https://cmake.org/)** : for configuration and build.  
+- **[OpenCV](https://opencv.org/)** : for graphical rendering.  
+- **[CUDA](https://developer.nvidia.com/cuda-toolkit)** and **NVIDIA GPU** : for GPU acceleration.  
 
-## Installation et Compilation  
-**Cloner le dépôt** :  
+## Installation & Build  
+**Clone the repository:** :  
    ```bash
    git clone -b extension-performance https://github.com/Cyclemnt/boids.git
    ```  
 
-**Compiler** :  
+**Build and run:** :  
    ```bash
    cd boids
    mkdir build
