@@ -54,3 +54,8 @@ The core rules implemented are:
    make
    ./main
   ```
+
+## Group members
+- FERRIER Simon
+- LAMOULLER Clément
+- PARIZOT Luan
