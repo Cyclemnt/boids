@@ -1,49 +1,51 @@
-# Simulation de Boids  
+# Boids Simulation  
 
-Ce projet propose une simulation de boids, des entités mobiles suivant des règles simples pour simuler des comportements collectifs. Basé sur une structure commune, il se décline en trois branches principales, chacune explorant une extension unique.  
+This project implements a simulation of boids, mobile entities following simple rules to reproduce collective behaviors. Built on a common core, the project is divided into three main branches, each exploring a different extension.  
 
 <p align="center">
   <img src="demo.gif" alt="Demo"/>
 </p>
 
 
-## Description du projet  
-Les boids sont un exemple de comportement émergent, c'est-à-dire que la complexité des boids provient de l'interaction d'agents individuels (les boids, dans ce cas) adhérant à un ensemble de règles simples. Les règles appliquées dans le monde des boids le plus simple sont les suivantes :  
-1. **Distanciation** : orienter pour éviter d'entasser les membres du troupeau local  
-2. **Alignement** : orienter vers le cap moyen des membres du troupeau local  
-3. **Cohésion** : orienter pour se déplacer vers la position moyenne (centre de masse) des membres du troupeau local  
+## Project Description  
+Boids are a classic example of emergent behavior: complexity arises from the interaction of individual agents (the boids) that follow a small set of simple rules.  
+The core rules implemented are:  
+1. **Separation** : steer to avoid crowding local flockmates  
+2. **Alignment** : steer towards the average heading of local flockmates  
+3. **Cohesion** : steer to move toward the average position (center of mass) of local flockmates  
 
-## Fonctionnalités  
-### Simulation de base  
-- Affichage en temps réel des boids avec des couleurs distinctes pour chaque règle (distanciation, alignement, cohésion).  
-- Système d’environnement torique (bords connectés).  
+## Features  
+### Base Simulation  
+- Real-time rendering of boids with distinct colors for each rule (separation, alignment, cohesion).  
+- Toroidal environment (connected borders).  
 
-### Extensions  
-#### Interaction avec la souris  
-- Ajout ou suppression de boids via clics de souris.  
-- Fonction de suivi de la souris par les boids, activable/désactivable.  
+### Extensions (different branches of the repository)  
+#### Mouse Interaction (branch: `extension-mouse`)  
+- Add or remove boids with mouse clicks.  
+- Enable/disable mouse-following behavior.  
 
-#### Optimisation des performances  
-- Optimisation avancée via CUDA et spatial hashing, permettant la simulation du million de boids.  
+#### Performance Optimization (branch: `extension-performance`)  
+- Advanced optimization using CUDA and spatial hashing.
+- Supports simulations with up to one million boids.  
 
-#### Prédation  
-- Introduction de prédateurs et de ressources statiques (nourriture).  
-- Dynamique de chasse et reproduction.  
-- Transformation des entités selon des interactions spécifiques (ex : boid capturé devient prédateur).  
+#### Predation (branch: `extension-predation`)  
+- Adds predators and static resources (food).  
+- Hunting and reproduction dynamics.  
+- Entities can transform based on interactions (e.g., a captured boid becomes a predator).  
 
-## Dépendances
-- **[OpenCV](https://opencv.org/)** : Pour les affichages graphiques.
-- **[OpenMP](https://www.openmp.org/)** : Pour la parallélisation CPU.
-- **[CMake](https://cmake.org/)** : Pour la configuration et la construction du projet.
-- **C++11** ou version ultérieure.
-- **[CUDA](https://developer.nvidia.com/cuda-toolkit)** : Pour la parallélisation de la branche extension-performance
+## Dependencies
+- **[OpenCV](https://opencv.org/)** : for graphical rendering.
+- **[OpenMP](https://www.openmp.org/)** : for CPU parallelization.
+- **[CMake](https://cmake.org/)** : for configuration and build.
+- **C++11** or later.
+- **[CUDA](https://developer.nvidia.com/cuda-toolkit)** : (required only for the `extension-performance branch`)
 
-## Installation et Compilation
-**Cloner le dépôt** :
+## Installation & Build
+**Clone the repository**:
    ```bash
    git clone https://github.com/Cyclemnt/boids.git
   ```
-**Compiler** :
+**Build and run**:
    ```bash
    cd boids
    mkdir build
