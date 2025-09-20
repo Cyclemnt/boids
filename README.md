@@ -20,15 +20,15 @@ The core rules implemented are:
 - Toroidal environment (connected borders).  
 
 ### Extensions (different branches of the repository)  
-#### Mouse Interaction (branch: `extension-mouse`)  
+#### Mouse Interaction (branch: `[extension-mouse](https://github.com/Cyclemnt/boids/tree/extension-mouse)`)  
 - Add or remove boids with mouse clicks.  
 - Enable/disable mouse-following behavior.  
 
-#### Performance Optimization (branch: `extension-performance`)  
+#### Performance Optimization (branch: `[extension-performance](https://github.com/Cyclemnt/boids/tree/extension-performance)`)  
 - Advanced optimization using CUDA and spatial hashing.
 - Supports simulations with up to one million boids.  
 
-#### Predation (branch: `extension-predation`)  
+#### Predation (branch: `[extension-predation](https://github.com/Cyclemnt/boids/tree/extension-predation)`)  
 - Adds predators and static resources (food).  
 - Hunting and reproduction dynamics.  
 - Entities can transform based on interactions (e.g., a captured boid becomes a predator).  
@@ -55,7 +55,7 @@ The core rules implemented are:
    ./main
   ```
 
-## Group members
+## Contributors
 - FERRIER Simon
 - LAMOULLER Clément
 - PARIZOT Luan
