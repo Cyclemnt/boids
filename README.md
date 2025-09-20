@@ -1,5 +1,5 @@
 # Boids Simulation - Performance Optimization
-
+###### made by Clément Lamouller
 This branch of the project focuses on performance optimization, allowing the simulation to handle much larger populations of boids through advanced techniques.  
 
 <p align="center">
